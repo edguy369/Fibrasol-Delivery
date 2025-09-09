@@ -27,6 +27,7 @@ public class AuthController : Controller
 
     #region HTTP Methods
     [HttpPost]
+    [Route("login")]
     public async Task<IActionResult> LoginAsync([FromBody] LoginRequest request)
     {
         var user = await _userManager.FindByEmailAsync(request.Email);

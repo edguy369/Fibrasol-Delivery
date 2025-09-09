@@ -1,4 +1,13 @@
-﻿// Please see documentation at https://learn.microsoft.com/aspnet/core/client-side/bundling-and-minification
-// for details on configuring this project to bundle and minify static web assets.
+﻿function LockForm() {
+    $('input').prop('disabled', true);
+    $('select').prop('disabled', true);
+    $('textarea').prop('disabled', true);
+    $('button').prop('disabled', true);
+}
 
-// Write your JavaScript code.
+function UnlockForm() {
+    $('input').prop('disabled', false);
+    $('select').prop('disabled', false);
+    $('textarea').prop('disabled', false);
+    $('button').prop('disabled', false);
+}
