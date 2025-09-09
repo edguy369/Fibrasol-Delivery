@@ -139,102 +139,7 @@
             </tr>
         </thead>
         <tbody>
-            <tr>
-                <td>1</td>
-                <td>Juan Pérez</td>
-                <td>
-                    <button type="button" class="btn btn-edit btn-sm me-1" onclick="editClient(1, 'Juan Pérez')">
-                        <i class="bi bi-pencil"></i>
-                    </button>
-                    <button type="button" class="btn btn-delete btn-sm" onclick="deleteClient(1)">
-                        <i class="bi bi-trash"></i>
-                    </button>
-                </td>
-            </tr>
-            <tr>
-                <td>2</td>
-                <td>María García</td>
-                <td>
-                    <button type="button" class="btn btn-edit btn-sm me-1" onclick="editClient(2, 'María García')">
-                        <i class="bi bi-pencil"></i>
-                    </button>
-                    <button type="button" class="btn btn-delete btn-sm" onclick="deleteClient(2)">
-                        <i class="bi bi-trash"></i>
-                    </button>
-                </td>
-            </tr>
-            <tr>
-                <td>3</td>
-                <td>Carlos Rodriguez</td>
-                <td>
-                    <button type="button" class="btn btn-edit btn-sm me-1" onclick="editClient(3, 'Carlos Rodriguez')">
-                        <i class="bi bi-pencil"></i>
-                    </button>
-                    <button type="button" class="btn btn-delete btn-sm" onclick="deleteClient(3)">
-                        <i class="bi bi-trash"></i>
-                    </button>
-                </td>
-            </tr>
-            <tr>
-                <td>4</td>
-                <td>Ana López</td>
-                <td>
-                    <button type="button" class="btn btn-edit btn-sm me-1" onclick="editClient(4, 'Ana López')">
-                        <i class="bi bi-pencil"></i>
-                    </button>
-                    <button type="button" class="btn btn-delete btn-sm" onclick="deleteClient(4)">
-                        <i class="bi bi-trash"></i>
-                    </button>
-                </td>
-            </tr>
-            <tr>
-                <td>5</td>
-                <td>Luis Martínez</td>
-                <td>
-                    <button type="button" class="btn btn-edit btn-sm me-1" onclick="editClient(5, 'Luis Martínez')">
-                        <i class="bi bi-pencil"></i>
-                    </button>
-                    <button type="button" class="btn btn-delete btn-sm" onclick="deleteClient(5)">
-                        <i class="bi bi-trash"></i>
-                    </button>
-                </td>
-            </tr>
-            <tr>
-                <td>6</td>
-                <td>Sofia Hernández</td>
-                <td>
-                    <button type="button" class="btn btn-edit btn-sm me-1" onclick="editClient(6, 'Sofia Hernández')">
-                        <i class="bi bi-pencil"></i>
-                    </button>
-                    <button type="button" class="btn btn-delete btn-sm" onclick="deleteClient(6)">
-                        <i class="bi bi-trash"></i>
-                    </button>
-                </td>
-            </tr>
-            <tr>
-                <td>7</td>
-                <td>Miguel Torres</td>
-                <td>
-                    <button type="button" class="btn btn-edit btn-sm me-1" onclick="editClient(7, 'Miguel Torres')">
-                        <i class="bi bi-pencil"></i>
-                    </button>
-                    <button type="button" class="btn btn-delete btn-sm" onclick="deleteClient(7)">
-                        <i class="bi bi-trash"></i>
-                    </button>
-                </td>
-            </tr>
-            <tr>
-                <td>8</td>
-                <td>Carmen Ruiz</td>
-                <td>
-                    <button type="button" class="btn btn-edit btn-sm me-1" onclick="editClient(8, 'Carmen Ruiz')">
-                        <i class="bi bi-pencil"></i>
-                    </button>
-                    <button type="button" class="btn btn-delete btn-sm" onclick="deleteClient(8)">
-                        <i class="bi bi-trash"></i>
-                    </button>
-                </td>
-            </tr>
+            <!-- Data will be loaded via AJAX -->
         </tbody>
     </table>
 </div>
@@ -272,6 +177,27 @@
     <script>
         $(document).ready(function() {
             $('#clientsTable').DataTable({
+                ajax: {
+                    url: '/clients',
+                    type: 'GET',
+                    dataSrc: ''
+                },
+                columns: [
+                    { data: 'id' },
+                    { data: 'name' },
+                    {
+                        data: null,
+                        orderable: false,
+                        render: function(data, type, row) {
+                            return '<button type="button" class="btn btn-edit btn-sm me-1" onclick="editClient(' + row.id + ', \'' + row.name.replace(/'/g, "\\'") + '\')">' +
+                                   '<i class="bi bi-pencil"></i>' +
+                                   '</button>' +
+                                   '<button type="button" class="btn btn-delete btn-sm" onclick="deleteClient(' + row.id + ')">' +
+                                   '<i class="bi bi-trash"></i>' +
+                                   '</button>';
+                        }
+                    }
+                ],
                 language: {
                     url: 'https://cdn.datatables.net/plug-ins/1.13.7/i18n/es-ES.json'
                 },
@@ -298,10 +224,23 @@
 
         function deleteClient(id) {
             if (confirm('¿Está seguro de que desea eliminar este cliente?')) {
-                // Here you would make an AJAX call to delete the client
-                alert('Cliente eliminado correctamente');
-                // Reload the table or remove the row
-                location.reload();
+                $.ajax({
+                    url: '/clients/' + id,
+                    type: 'DELETE',
+                    contentType: 'application/json',
+                    data: JSON.stringify({}),
+                    success: function(response) {
+                        // Show success message
+                        showSuccessMessage('Cliente eliminado correctamente');
+                        
+                        // Reload DataTable
+                        $('#clientsTable').DataTable().ajax.reload();
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Error deleting client:', error);
+                        alert('Error al eliminar el cliente. Por favor, inténtelo de nuevo.');
+                    }
+                });
             }
         }
 
@@ -314,18 +253,96 @@
                 return;
             }
             
+            // Disable save button to prevent multiple clicks
+            var saveButton = document.querySelector('#clientModal .btn-primary-custom');
+            var originalText = saveButton.innerHTML;
+            saveButton.disabled = true;
+            saveButton.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Guardando...';
+            
             if (id) {
                 // Update existing client
-                alert('Cliente actualizado correctamente');
+                updateClient(id, name, saveButton, originalText);
             } else {
                 // Create new client
-                alert('Cliente creado correctamente');
+                createClient(name, saveButton, originalText);
             }
+        }
+
+        function createClient(name, saveButton, originalText) {
+            $.ajax({
+                url: '/clients',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    Name: name
+                }),
+                success: function(response) {
+                    // Close modal and reload page
+                    var modal = bootstrap.Modal.getInstance(document.getElementById('clientModal'));
+                    modal.hide();
+                    
+                    // Show success message
+                    showSuccessMessage('Cliente creado correctamente');
+                    
+                    // Reload DataTable
+                    $('#clientsTable').DataTable().ajax.reload();
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error creating client:', error);
+                    alert('Error al crear el cliente. Por favor, inténtelo de nuevo.');
+                },
+                complete: function() {
+                    // Re-enable save button
+                    saveButton.disabled = false;
+                    saveButton.innerHTML = originalText;
+                }
+            });
+        }
+
+        function updateClient(id, name, saveButton, originalText) {
+            $.ajax({
+                url: '/clients/' + id,
+                type: 'PUT',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    Name: name
+                }),
+                success: function(response) {
+                    // Close modal and reload page
+                    var modal = bootstrap.Modal.getInstance(document.getElementById('clientModal'));
+                    modal.hide();
+                    
+                    // Show success message
+                    showSuccessMessage('Cliente actualizado correctamente');
+                    
+                    // Reload DataTable
+                    $('#clientsTable').DataTable().ajax.reload();
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error updating client:', error);
+                    alert('Error al actualizar el cliente. Por favor, inténtelo de nuevo.');
+                },
+                complete: function() {
+                    // Re-enable save button
+                    saveButton.disabled = false;
+                    saveButton.innerHTML = originalText;
+                }
+            });
+        }
+
+        function showSuccessMessage(message) {
+            // Create and show a temporary success alert
+            var alertHtml = '<div class="alert alert-success alert-dismissible fade show" role="alert">' +
+                           '<i class="bi bi-check-circle me-2"></i>' + message +
+                           '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>' +
+                           '</div>';
             
-            // Close modal and reload page
-            var modal = bootstrap.Modal.getInstance(document.getElementById('clientModal'));
-            modal.hide();
-            location.reload();
+            $('.page-header').after(alertHtml);
+            
+            // Auto-dismiss after 3 seconds
+            setTimeout(function() {
+                $('.alert-success').fadeOut();
+            }, 3000);
         }
     </script>
 }
