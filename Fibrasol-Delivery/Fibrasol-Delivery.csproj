@@ -5,11 +5,11 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>Fibrasol_Delivery</RootNamespace>
+    <UserSecretsId>8c0d3baa-4826-46a3-b732-c097a2572ebc</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
     <Folder Include="Database\" />
-    <Folder Include="Views\Home\" />
   </ItemGroup>
 
   <ItemGroup>
