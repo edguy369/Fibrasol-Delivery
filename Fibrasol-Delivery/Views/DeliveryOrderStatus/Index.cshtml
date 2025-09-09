@@ -1,0 +1,347 @@
+﻿@{
+    ViewData["Title"] = "Gestión de Estados de Entrega";
+}
+
+<style>
+    .page-header {
+        background: linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%);
+        color: white;
+        padding: 2rem;
+        border-radius: 15px;
+        margin-bottom: 2rem;
+        box-shadow: 0 8px 32px rgba(79, 70, 229, 0.3);
+    }
+    
+    .btn-primary-custom {
+        background: linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%);
+        border: none;
+        border-radius: 8px;
+        padding: 0.5rem 1.5rem;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(79, 70, 229, 0.3);
+    }
+    
+    .btn-primary-custom:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(79, 70, 229, 0.4);
+        background: linear-gradient(135deg, #3730a3 0%, #0891b2 100%);
+    }
+    
+    .btn-edit {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        border: none;
+        color: white;
+        padding: 0.375rem 0.75rem;
+        border-radius: 6px;
+        font-size: 0.875rem;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-edit:hover {
+        background: linear-gradient(135deg, #059669 0%, #047857 100%);
+        transform: translateY(-1px);
+        color: white;
+    }
+    
+    .btn-delete {
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        border: none;
+        color: white;
+        padding: 0.375rem 0.75rem;
+        border-radius: 6px;
+        font-size: 0.875rem;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-delete:hover {
+        background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+        transform: translateY(-1px);
+        color: white;
+    }
+    
+    .table-container {
+        background: white;
+        border-radius: 15px;
+        padding: 1.5rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    }
+    
+    .modal-content {
+        border-radius: 15px;
+        border: none;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+    }
+    
+    .modal-header {
+        background: linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%);
+        color: white;
+        border-top-left-radius: 15px;
+        border-top-right-radius: 15px;
+        border-bottom: none;
+    }
+    
+    .form-control:focus {
+        border-color: #4f46e5;
+        box-shadow: 0 0 0 0.2rem rgba(79, 70, 229, 0.25);
+    }
+    
+    .dataTables_wrapper .dataTables_length,
+    .dataTables_wrapper .dataTables_filter,
+    .dataTables_wrapper .dataTables_info,
+    .dataTables_wrapper .dataTables_paginate {
+        margin-bottom: 1rem;
+    }
+    
+    .dataTables_wrapper .dataTables_paginate .paginate_button.current {
+        background: linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%) !important;
+        border-color: #4f46e5 !important;
+        color: white !important;
+    }
+    
+    .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+        background: #f8fafc !important;
+        border-color: #4f46e5 !important;
+        color: #4f46e5 !important;
+    }
+    
+    .table thead th {
+        background: linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%);
+        color: white;
+        border: none;
+        font-weight: 600;
+    }
+    
+    .table tbody tr:hover {
+        background-color: #f8fafc;
+    }
+</style>
+
+<div class="page-header mt-4">
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            <h1 class="mb-2"><i class="bi bi-clipboard-check me-3"></i>Gestión de Estados de Entrega</h1>
+            <p class="mb-0 opacity-75">Administra los estados de las órdenes de entrega</p>
+        </div>
+        <button type="button" class="btn btn-light btn-lg" data-bs-toggle="modal" data-bs-target="#deliveryStatusModal" onclick="openCreateModal()">
+            <i class="bi bi-plus-circle me-2"></i>Nuevo Estado
+        </button>
+    </div>
+</div>
+
+<div class="table-container">
+    <table id="deliveryStatusesTable" class="table table-striped table-hover">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Nombre</th>
+                <th width="150">Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Data will be loaded via AJAX -->
+        </tbody>
+    </table>
+</div>
+
+<!-- Delivery Status Modal -->
+<div class="modal fade" id="deliveryStatusModal" tabindex="-1" aria-labelledby="deliveryStatusModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deliveryStatusModalLabel">Nuevo Estado</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="deliveryStatusForm">
+                    <input type="hidden" id="deliveryStatusId" value="">
+                    <div class="mb-3">
+                        <label for="deliveryStatusName" class="form-label">Nombre del Estado</label>
+                        <input type="text" class="form-control" id="deliveryStatusName" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary-custom" onclick="saveDeliveryStatus()">Guardar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
+    <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+    
+    <script>
+        $(document).ready(function() {
+            $('#deliveryStatusesTable').DataTable({
+                ajax: {
+                    url: '/delivery-statuses',
+                    type: 'GET',
+                    dataSrc: ''
+                },
+                columns: [
+                    { data: 'id' },
+                    { data: 'name' },
+                    {
+                        data: null,
+                        orderable: false,
+                        render: function(data, type, row) {
+                            return '<button type="button" class="btn btn-edit btn-sm me-1" onclick="editDeliveryStatus(' + row.id + ', \'' + row.name.replace(/'/g, "\\'") + '\')">' +
+                                   '<i class="bi bi-pencil"></i>' +
+                                   '</button>' +
+                                   '<button type="button" class="btn btn-delete btn-sm" onclick="deleteDeliveryStatus(' + row.id + ')">' +
+                                   '<i class="bi bi-trash"></i>' +
+                                   '</button>';
+                        }
+                    }
+                ],
+                language: {
+                    url: 'https://cdn.datatables.net/plug-ins/1.13.7/i18n/es-ES.json'
+                },
+                pageLength: 10,
+                responsive: true,
+                order: [[0, 'asc']]
+            });
+        });
+
+        function openCreateModal() {
+            document.getElementById('deliveryStatusModalLabel').textContent = 'Nuevo Estado';
+            document.getElementById('deliveryStatusId').value = '';
+            document.getElementById('deliveryStatusName').value = '';
+        }
+
+        function editDeliveryStatus(id, name) {
+            document.getElementById('deliveryStatusModalLabel').textContent = 'Editar Estado';
+            document.getElementById('deliveryStatusId').value = id;
+            document.getElementById('deliveryStatusName').value = name;
+            
+            var modal = new bootstrap.Modal(document.getElementById('deliveryStatusModal'));
+            modal.show();
+        }
+
+        function deleteDeliveryStatus(id) {
+            if (confirm('¿Está seguro de que desea eliminar este estado de entrega?')) {
+                $.ajax({
+                    url: '/delivery-statuses/' + id,
+                    type: 'DELETE',
+                    contentType: 'application/json',
+                    success: function(response) {
+                        // Show success message
+                        showSuccessMessage('Estado eliminado correctamente');
+                        
+                        // Reload DataTable
+                        $('#deliveryStatusesTable').DataTable().ajax.reload();
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Error deleting delivery status:', error);
+                        alert('Error al eliminar el estado. Por favor, inténtelo de nuevo.');
+                    }
+                });
+            }
+        }
+
+        function saveDeliveryStatus() {
+            var id = document.getElementById('deliveryStatusId').value;
+            var name = document.getElementById('deliveryStatusName').value.trim();
+            
+            if (!name) {
+                alert('Por favor, ingrese el nombre del estado.');
+                return;
+            }
+            
+            // Disable save button to prevent multiple clicks
+            var saveButton = document.querySelector('#deliveryStatusModal .btn-primary-custom');
+            var originalText = saveButton.innerHTML;
+            saveButton.disabled = true;
+            saveButton.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Guardando...';
+            
+            if (id) {
+                // Update existing delivery status
+                updateDeliveryStatus(id, name, saveButton, originalText);
+            } else {
+                // Create new delivery status
+                createDeliveryStatus(name, saveButton, originalText);
+            }
+        }
+
+        function createDeliveryStatus(name, saveButton, originalText) {
+            $.ajax({
+                url: '/delivery-statuses',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    Name: name
+                }),
+                success: function(response) {
+                    // Close modal and reload page
+                    var modal = bootstrap.Modal.getInstance(document.getElementById('deliveryStatusModal'));
+                    modal.hide();
+                    
+                    // Show success message
+                    showSuccessMessage('Estado creado correctamente');
+                    
+                    // Reload DataTable
+                    $('#deliveryStatusesTable').DataTable().ajax.reload();
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error creating delivery status:', error);
+                    alert('Error al crear el estado. Por favor, inténtelo de nuevo.');
+                },
+                complete: function() {
+                    // Re-enable save button
+                    saveButton.disabled = false;
+                    saveButton.innerHTML = originalText;
+                }
+            });
+        }
+
+        function updateDeliveryStatus(id, name, saveButton, originalText) {
+            $.ajax({
+                url: '/delivery-statuses/' + id,
+                type: 'PUT',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    Name: name
+                }),
+                success: function(response) {
+                    // Close modal and reload page
+                    var modal = bootstrap.Modal.getInstance(document.getElementById('deliveryStatusModal'));
+                    modal.hide();
+                    
+                    // Show success message
+                    showSuccessMessage('Estado actualizado correctamente');
+                    
+                    // Reload DataTable
+                    $('#deliveryStatusesTable').DataTable().ajax.reload();
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error updating delivery status:', error);
+                    alert('Error al actualizar el estado. Por favor, inténtelo de nuevo.');
+                },
+                complete: function() {
+                    // Re-enable save button
+                    saveButton.disabled = false;
+                    saveButton.innerHTML = originalText;
+                }
+            });
+        }
+
+        function showSuccessMessage(message) {
+            // Create and show a temporary success alert
+            var alertHtml = '<div class="alert alert-success alert-dismissible fade show" role="alert">' +
+                           '<i class="bi bi-check-circle me-2"></i>' + message +
+                           '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>' +
+                           '</div>';
+            
+            $('.page-header').after(alertHtml);
+            
+            // Auto-dismiss after 3 seconds
+            setTimeout(function() {
+                $('.alert-success').fadeOut();
+            }, 3000);
+        }
+    </script>
+}
