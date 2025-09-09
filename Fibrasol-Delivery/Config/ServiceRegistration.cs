@@ -10,6 +10,7 @@ public static class ServiceRegistration
         var connectionString = new ConnectionString(config["ConnectionString"]);
         services.AddSingleton(connectionString);
 
+        services.AddTransient<IRiderRepository, RiderRepository>();
         services.AddTransient<IClientRepository, ClientRepository>();
         services.AddTransient<IUnitOfWork, UnitOfWork>();
     }

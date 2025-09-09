@@ -5,8 +5,11 @@ namespace Fibrasol_Delivery.Repository;
 public class UnitOfWork : IUnitOfWork
 {
     public IClientRepository Clients { get; }
-    public UnitOfWork(IClientRepository clients)
+    public IRiderRepository Riders { get; }
+    public UnitOfWork(IClientRepository clients,
+        IRiderRepository riders)
     {
         Clients = clients;
+        Riders = riders;
     }
 }
