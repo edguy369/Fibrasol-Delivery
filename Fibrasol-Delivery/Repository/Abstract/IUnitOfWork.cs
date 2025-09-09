@@ -4,4 +4,5 @@ public interface IUnitOfWork
 {
     public IClientRepository Clients { get; }
     public IRiderRepository Riders { get; }
+    public IDeliveryOrderStatusRepository DeliveryOrderStatuses { get; }
 }
