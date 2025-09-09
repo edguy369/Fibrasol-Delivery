@@ -10,8 +10,13 @@
   <ItemGroup>
     <Folder Include="Controllers\" />
     <Folder Include="Database\" />
-    <Folder Include="Repository\Abstract\" />
     <Folder Include="Views\Home\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Dapper" Version="2.1.66" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Razor.RuntimeCompilation" Version="8.0.20" />
+    <PackageReference Include="MySql.Data" Version="9.4.0" />
   </ItemGroup>
 
 </Project>
