@@ -1,5 +1,331 @@
-﻿@*
-    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-*@
-@{
+﻿@{
+    ViewData["Title"] = "Gestión de Clientes";
+}
+
+<style>
+    .page-header {
+        background: linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%);
+        color: white;
+        padding: 2rem;
+        border-radius: 15px;
+        margin-bottom: 2rem;
+        box-shadow: 0 8px 32px rgba(79, 70, 229, 0.3);
+    }
+    
+    .btn-primary-custom {
+        background: linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%);
+        border: none;
+        border-radius: 8px;
+        padding: 0.5rem 1.5rem;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(79, 70, 229, 0.3);
+    }
+    
+    .btn-primary-custom:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(79, 70, 229, 0.4);
+        background: linear-gradient(135deg, #3730a3 0%, #0891b2 100%);
+    }
+    
+    .btn-edit {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        border: none;
+        color: white;
+        padding: 0.375rem 0.75rem;
+        border-radius: 6px;
+        font-size: 0.875rem;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-edit:hover {
+        background: linear-gradient(135deg, #059669 0%, #047857 100%);
+        transform: translateY(-1px);
+        color: white;
+    }
+    
+    .btn-delete {
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        border: none;
+        color: white;
+        padding: 0.375rem 0.75rem;
+        border-radius: 6px;
+        font-size: 0.875rem;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-delete:hover {
+        background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+        transform: translateY(-1px);
+        color: white;
+    }
+    
+    .table-container {
+        background: white;
+        border-radius: 15px;
+        padding: 1.5rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    }
+    
+    .modal-content {
+        border-radius: 15px;
+        border: none;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+    }
+    
+    .modal-header {
+        background: linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%);
+        color: white;
+        border-top-left-radius: 15px;
+        border-top-right-radius: 15px;
+        border-bottom: none;
+    }
+    
+    .form-control:focus {
+        border-color: #4f46e5;
+        box-shadow: 0 0 0 0.2rem rgba(79, 70, 229, 0.25);
+    }
+    
+    .dataTables_wrapper .dataTables_length,
+    .dataTables_wrapper .dataTables_filter,
+    .dataTables_wrapper .dataTables_info,
+    .dataTables_wrapper .dataTables_paginate {
+        margin-bottom: 1rem;
+    }
+    
+    .dataTables_wrapper .dataTables_paginate .paginate_button.current {
+        background: linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%) !important;
+        border-color: #4f46e5 !important;
+        color: white !important;
+    }
+    
+    .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+        background: #f8fafc !important;
+        border-color: #4f46e5 !important;
+        color: #4f46e5 !important;
+    }
+    
+    .table thead th {
+        background: linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%);
+        color: white;
+        border: none;
+        font-weight: 600;
+    }
+    
+    .table tbody tr:hover {
+        background-color: #f8fafc;
+    }
+</style>
+
+<div class="page-header mt-4">
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            <h1 class="mb-2"><i class="bi bi-people me-3"></i>Gestión de Clientes</h1>
+            <p class="mb-0 opacity-75">Administra la información de tus clientes</p>
+        </div>
+        <button type="button" class="btn btn-light btn-lg" data-bs-toggle="modal" data-bs-target="#clientModal" onclick="openCreateModal()">
+            <i class="bi bi-plus-circle me-2"></i>Nuevo Cliente
+        </button>
+    </div>
+</div>
+
+<div class="table-container">
+    <table id="clientsTable" class="table table-striped table-hover">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Nombre</th>
+                <th width="150">Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>1</td>
+                <td>Juan Pérez</td>
+                <td>
+                    <button type="button" class="btn btn-edit btn-sm me-1" onclick="editClient(1, 'Juan Pérez')">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                    <button type="button" class="btn btn-delete btn-sm" onclick="deleteClient(1)">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </td>
+            </tr>
+            <tr>
+                <td>2</td>
+                <td>María García</td>
+                <td>
+                    <button type="button" class="btn btn-edit btn-sm me-1" onclick="editClient(2, 'María García')">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                    <button type="button" class="btn btn-delete btn-sm" onclick="deleteClient(2)">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </td>
+            </tr>
+            <tr>
+                <td>3</td>
+                <td>Carlos Rodriguez</td>
+                <td>
+                    <button type="button" class="btn btn-edit btn-sm me-1" onclick="editClient(3, 'Carlos Rodriguez')">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                    <button type="button" class="btn btn-delete btn-sm" onclick="deleteClient(3)">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </td>
+            </tr>
+            <tr>
+                <td>4</td>
+                <td>Ana López</td>
+                <td>
+                    <button type="button" class="btn btn-edit btn-sm me-1" onclick="editClient(4, 'Ana López')">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                    <button type="button" class="btn btn-delete btn-sm" onclick="deleteClient(4)">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </td>
+            </tr>
+            <tr>
+                <td>5</td>
+                <td>Luis Martínez</td>
+                <td>
+                    <button type="button" class="btn btn-edit btn-sm me-1" onclick="editClient(5, 'Luis Martínez')">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                    <button type="button" class="btn btn-delete btn-sm" onclick="deleteClient(5)">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </td>
+            </tr>
+            <tr>
+                <td>6</td>
+                <td>Sofia Hernández</td>
+                <td>
+                    <button type="button" class="btn btn-edit btn-sm me-1" onclick="editClient(6, 'Sofia Hernández')">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                    <button type="button" class="btn btn-delete btn-sm" onclick="deleteClient(6)">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </td>
+            </tr>
+            <tr>
+                <td>7</td>
+                <td>Miguel Torres</td>
+                <td>
+                    <button type="button" class="btn btn-edit btn-sm me-1" onclick="editClient(7, 'Miguel Torres')">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                    <button type="button" class="btn btn-delete btn-sm" onclick="deleteClient(7)">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </td>
+            </tr>
+            <tr>
+                <td>8</td>
+                <td>Carmen Ruiz</td>
+                <td>
+                    <button type="button" class="btn btn-edit btn-sm me-1" onclick="editClient(8, 'Carmen Ruiz')">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                    <button type="button" class="btn btn-delete btn-sm" onclick="deleteClient(8)">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<!-- Client Modal -->
+<div class="modal fade" id="clientModal" tabindex="-1" aria-labelledby="clientModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="clientModalLabel">Nuevo Cliente</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="clientForm">
+                    <input type="hidden" id="clientId" value="">
+                    <div class="mb-3">
+                        <label for="clientName" class="form-label">Nombre del Cliente</label>
+                        <input type="text" class="form-control" id="clientName" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary-custom" onclick="saveClient()">Guardar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
+    <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+    
+    <script>
+        $(document).ready(function() {
+            $('#clientsTable').DataTable({
+                language: {
+                    url: 'https://cdn.datatables.net/plug-ins/1.13.7/i18n/es-ES.json'
+                },
+                pageLength: 10,
+                responsive: true,
+                order: [[0, 'asc']]
+            });
+        });
+
+        function openCreateModal() {
+            document.getElementById('clientModalLabel').textContent = 'Nuevo Cliente';
+            document.getElementById('clientId').value = '';
+            document.getElementById('clientName').value = '';
+        }
+
+        function editClient(id, name) {
+            document.getElementById('clientModalLabel').textContent = 'Editar Cliente';
+            document.getElementById('clientId').value = id;
+            document.getElementById('clientName').value = name;
+            
+            var modal = new bootstrap.Modal(document.getElementById('clientModal'));
+            modal.show();
+        }
+
+        function deleteClient(id) {
+            if (confirm('¿Está seguro de que desea eliminar este cliente?')) {
+                // Here you would make an AJAX call to delete the client
+                alert('Cliente eliminado correctamente');
+                // Reload the table or remove the row
+                location.reload();
+            }
+        }
+
+        function saveClient() {
+            var id = document.getElementById('clientId').value;
+            var name = document.getElementById('clientName').value.trim();
+            
+            if (!name) {
+                alert('Por favor, ingrese el nombre del cliente.');
+                return;
+            }
+            
+            if (id) {
+                // Update existing client
+                alert('Cliente actualizado correctamente');
+            } else {
+                // Create new client
+                alert('Cliente creado correctamente');
+            }
+            
+            // Close modal and reload page
+            var modal = bootstrap.Modal.getInstance(document.getElementById('clientModal'));
+            modal.hide();
+            location.reload();
+        }
+    </script>
 }
