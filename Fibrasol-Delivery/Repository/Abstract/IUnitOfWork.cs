@@ -2,4 +2,5 @@
 
 public interface IUnitOfWork
 {
+    public IClientRepository Clients { get; }
 }
