@@ -130,10 +130,7 @@
                 <div class="mb-3">
                     <label for="orderStatus" class="form-label">Estado</label>
                     <select class="form-select" id="orderStatus">
-                        <option value="Pendiente">Pendiente</option>
-                        <option value="En Progreso">En Progreso</option>
-                        <option value="Entregado">Entregado</option>
-                        <option value="Cancelado">Cancelado</option>
+                        <option value="">Cargando estados...</option>
                     </select>
                 </div>
             </div>
@@ -142,28 +139,22 @@
         <div class="row">
             <div class="col-md-6">
                 <div class="mb-3">
-                    <label for="orderDate" class="form-label">Fecha de Creación</label>
-                    <input type="datetime-local" class="form-control" id="orderDate">
-                </div>
-            </div>
-            <div class="col-md-6">
-                <div class="mb-3">
                     <label for="orderTotal" class="form-label">Total</label>
                     <div class="input-group">
                         <span class="input-group-text">$</span>
-                        <input type="number" class="form-control" id="orderTotal" step="0.01" min="0">
+                        <input type="number" class="form-control" id="orderTotal" step="0.01" min="0" disabled>
                     </div>
                 </div>
             </div>
         </div>
         
         <div class="mb-4">
-            <h5 class="mb-3">Productos de la Orden</h5>
+            <h5 class="mb-3">Comanda</h5>
             <div id="backordersContainer">
                 <!-- Backorders will be loaded here -->
             </div>
             <button type="button" class="btn btn-outline-primary" onclick="addBackorder()">
-                <i class="bi bi-plus-circle me-2"></i>Agregar Producto
+                <i class="bi bi-plus-circle me-2"></i>Agregar Comanda
             </button>
         </div>
         
@@ -189,37 +180,72 @@
         const dummyOrderData = {
             1: {
                 id: 1,
-                status: { name: "Pendiente" },
+                status: { id: 1, name: "Pendiente" },
                 created: "2024-01-15T08:30:00",
                 total: 150.75,
                 backorders: [
-                    { id: 1, productName: "Producto A", quantity: 2, unitPrice: 50.25 },
-                    { id: 2, productName: "Producto B", quantity: 1, unitPrice: 50.25 }
+                    { id: 1, client: "Cliente ABC", commandNumber: "CMD-001", totalWeight: 25.500 },
+                    { id: 2, client: "Cliente XYZ", commandNumber: "CMD-002", totalWeight: 18.750 }
                 ]
             },
             2: {
                 id: 2,
-                status: { name: "En Progreso" },
+                status: { id: 2, name: "En Progreso" },
                 created: "2024-01-14T14:20:00",
                 total: 225.50,
                 backorders: [
-                    { id: 3, productName: "Producto C", quantity: 3, unitPrice: 75.17 }
+                    { id: 3, client: "Cliente DEF", commandNumber: "CMD-003", totalWeight: 42.250 }
                 ]
             }
         };
         
         $(document).ready(function() {
-            if (isNewOrder) {
-                setupNewOrder();
-            } else {
-                loadOrderData(parseInt(orderId));
-            }
+            loadDeliveryStatuses().then(() => {
+                if (isNewOrder) {
+                    setupNewOrder();
+                } else {
+                    loadOrderData(parseInt(orderId));
+                }
+            });
         });
         
+        function loadDeliveryStatuses() {
+            return $.ajax({
+                url: '/delivery-statuses',
+                type: 'GET',
+                success: function(statuses) {
+                    const statusSelect = $('#orderStatus');
+                    statusSelect.empty();
+                    
+                    // Add default option
+                    statusSelect.append('<option value="">Seleccione un estado</option>');
+                    
+                    // Add status options from database
+                    statuses.forEach(function(status) {
+                        statusSelect.append(`<option value="${status.id}" data-name="${status.name}">${status.name}</option>`);
+                    });
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error loading delivery statuses:', error);
+                    
+                    // Fallback to static options if API fails
+                    const statusSelect = $('#orderStatus');
+                    statusSelect.empty();
+                    statusSelect.append('<option value="">Seleccione un estado</option>');
+                    statusSelect.append('<option value="1" data-name="Pendiente">Pendiente</option>');
+                    statusSelect.append('<option value="2" data-name="En Progreso">En Progreso</option>');
+                    statusSelect.append('<option value="3" data-name="Entregado">Entregado</option>');
+                    statusSelect.append('<option value="4" data-name="Cancelado">Cancelado</option>');
+                    
+                    // Show error message to user
+                    showErrorMessage('Error al cargar los estados. Se han cargado valores por defecto.');
+                }
+            });
+        }
+        
         function setupNewOrder() {
-            document.getElementById('pageTitle').textContent = 'Nueva Orden de Entrega';
+            document.getElementById('pageTitle').textContent = 'Nueva Constancia de Entrega';
             document.getElementById('orderId').value = 'Nuevo';
-            document.getElementById('orderDate').value = new Date().toISOString().slice(0, 16);
             document.getElementById('orderTotal').value = '0.00';
             addBackorder(); // Add one empty backorder by default
         }
@@ -227,10 +253,9 @@
         function loadOrderData(id) {
             const orderData = dummyOrderData[id];
             if (orderData) {
-                document.getElementById('pageTitle').textContent = 'Editar Orden de Entrega #' + id;
+                document.getElementById('pageTitle').textContent = 'Editar Constancia de Entrega #' + id;
                 document.getElementById('orderId').value = orderData.id;
-                document.getElementById('orderStatus').value = orderData.status.name;
-                document.getElementById('orderDate').value = orderData.created.slice(0, 16);
+                document.getElementById('orderStatus').value = orderData.status.id;
                 document.getElementById('orderTotal').value = orderData.total.toFixed(2);
                 
                 // Load backorders
@@ -250,30 +275,26 @@
             const backorderHtml = `
                 <div class="backorder-card" data-index="${backorderIndex}">
                     <div class="d-flex justify-content-between align-items-center mb-2">
-                        <h6 class="mb-0">Producto ${backorderIndex + 1}</h6>
+                        <h6 class="mb-0">Comanda ${backorderIndex + 1}</h6>
                         <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeBackorder(${backorderIndex})">
                             <i class="bi bi-trash"></i>
                         </button>
                     </div>
                     <div class="row">
                         <div class="col-md-4">
-                            <label class="form-label">Nombre del Producto</label>
-                            <input type="text" class="form-control backorder-product" value="${data ? data.productName : ''}" placeholder="Ingrese el nombre del producto">
+                            <label class="form-label">Cliente</label>
+                            <input type="text" class="form-control backorder-client" value="${data ? data.client : ''}" placeholder="Ingrese el nombre del cliente">
                         </div>
-                        <div class="col-md-3">
-                            <label class="form-label">Cantidad</label>
-                            <input type="number" class="form-control backorder-quantity" value="${data ? data.quantity : ''}" min="1" placeholder="0" onchange="updateOrderTotal()">
+                        <div class="col-md-4">
+                            <label class="form-label">No. Commanda</label>
+                            <input type="text" class="form-control backorder-command" value="${data ? data.commandNumber : ''}" placeholder="Ingrese el número de commanda">
                         </div>
-                        <div class="col-md-3">
-                            <label class="form-label">Precio Unitario</label>
+                        <div class="col-md-4">
+                            <label class="form-label">Peso Total Toneladas</label>
                             <div class="input-group">
-                                <span class="input-group-text">$</span>
-                                <input type="number" class="form-control backorder-price" value="${data ? data.unitPrice.toFixed(2) : ''}" step="0.01" min="0" placeholder="0.00" onchange="updateOrderTotal()">
+                                <input type="number" class="form-control backorder-weight" value="${data ? data.totalWeight.toFixed(3) : ''}" step="0.001" min="0" placeholder="0.000" onchange="updateOrderTotal()">
+                                <span class="input-group-text">Ton</span>
                             </div>
-                        </div>
-                        <div class="col-md-2">
-                            <label class="form-label">Subtotal</label>
-                            <div class="form-control-plaintext backorder-subtotal">$0.00</div>
                         </div>
                     </div>
                 </div>
@@ -297,34 +318,37 @@
             const backorders = document.querySelectorAll('.backorder-card');
             backorders.forEach((backorder, index) => {
                 backorder.setAttribute('data-index', index);
-                backorder.querySelector('h6').textContent = `Producto ${index + 1}`;
+                backorder.querySelector('h6').textContent = `Comanda ${index + 1}`;
                 const removeBtn = backorder.querySelector('.btn-outline-danger');
                 removeBtn.setAttribute('onclick', `removeBackorder(${index})`);
             });
         }
         
         function updateOrderTotal() {
-            let total = 0;
+            let totalWeight = 0;
             const backorders = document.querySelectorAll('.backorder-card');
             
             backorders.forEach(backorder => {
-                const quantity = parseFloat(backorder.querySelector('.backorder-quantity').value) || 0;
-                const price = parseFloat(backorder.querySelector('.backorder-price').value) || 0;
-                const subtotal = quantity * price;
-                
-                backorder.querySelector('.backorder-subtotal').textContent = '$' + subtotal.toFixed(2);
-                total += subtotal;
+                const weight = parseFloat(backorder.querySelector('.backorder-weight').value) || 0;
+                totalWeight += weight;
             });
+            
+            // For demonstration, calculate total based on weight (e.g., $100 per ton)
+            const pricePerTon = 100;
+            const total = totalWeight * pricePerTon;
             
             document.getElementById('orderTotal').value = total.toFixed(2);
         }
         
         function saveDeliveryOrder() {
             // Collect form data
+            const statusSelect = document.getElementById('orderStatus');
+            const selectedStatusOption = statusSelect.options[statusSelect.selectedIndex];
+            
             const formData = {
                 id: isNewOrder ? 0 : parseInt(orderId),
-                status: document.getElementById('orderStatus').value,
-                created: document.getElementById('orderDate').value,
+                statusId: parseInt(statusSelect.value),
+                statusName: selectedStatusOption ? selectedStatusOption.getAttribute('data-name') : '',
                 total: parseFloat(document.getElementById('orderTotal').value),
                 backorders: []
             };
@@ -332,22 +356,22 @@
             // Collect backorders data
             const backorders = document.querySelectorAll('.backorder-card');
             backorders.forEach(backorder => {
-                const productName = backorder.querySelector('.backorder-product').value;
-                const quantity = parseInt(backorder.querySelector('.backorder-quantity').value) || 0;
-                const unitPrice = parseFloat(backorder.querySelector('.backorder-price').value) || 0;
+                const client = backorder.querySelector('.backorder-client').value;
+                const commandNumber = backorder.querySelector('.backorder-command').value;
+                const totalWeight = parseFloat(backorder.querySelector('.backorder-weight').value) || 0;
                 
-                if (productName && quantity > 0 && unitPrice > 0) {
+                if (client && commandNumber && totalWeight > 0) {
                     formData.backorders.push({
-                        productName,
-                        quantity,
-                        unitPrice
+                        client,
+                        commandNumber,
+                        totalWeight
                     });
                 }
             });
             
             // Validate
-            if (!formData.status || formData.backorders.length === 0) {
-                alert('Por favor, complete todos los campos requeridos y agregue al menos un producto.');
+            if (!formData.statusId || formData.backorders.length === 0) {
+                alert('Por favor, complete todos los campos requeridos y agregue al menos una orden de entrega.');
                 return;
             }
             
@@ -373,6 +397,21 @@
             setTimeout(function() {
                 $('.alert-success').fadeOut();
             }, 3000);
+        }
+        
+        function showErrorMessage(message) {
+            // Create and show a temporary error alert
+            var alertHtml = '<div class="alert alert-warning alert-dismissible fade show" role="alert">' +
+                           '<i class="bi bi-exclamation-triangle me-2"></i>' + message +
+                           '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>' +
+                           '</div>';
+            
+            $('.page-header').after(alertHtml);
+            
+            // Auto-dismiss after 5 seconds
+            setTimeout(function() {
+                $('.alert-warning').fadeOut();
+            }, 5000);
         }
     </script>
 }
