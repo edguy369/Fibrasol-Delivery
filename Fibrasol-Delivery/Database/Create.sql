@@ -107,3 +107,48 @@ CREATE TABLE `DeliveryOrderStatus` (
     `Name` VARCHAR(150) NOT NULL,
     PRIMARY KEY (`Id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+/*DELIVERY ORDER*/
+CREATE TABLE `DeliveryOrder` (
+    `Id` INT NOT NULL AUTO_INCREMENT,
+    `StatusId` INT NOT NULL,
+    `Created` DATETIME NOT NULL DEFAULT NOW(),
+    `Total` DOUBLE NOT NULL,
+    PRIMARY KEY (`Id`),
+    CONSTRAINT `FK_DeliveryOrder_DeliveryOrderStatus_StatusId` FOREIGN KEY (`StatusId`) REFERENCES `DeliveryOrderStatus` (`Id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+/*CONDUCTORES DE ORDEN*/
+CREATE TABLE `DeliveryOrderDrivers` (
+    `Id` INT NOT NULL AUTO_INCREMENT,
+    `DeliveryOrderId` INT NOT NULL,
+    `DriverId` INT NOT NULL,
+    PRIMARY KEY (`Id`),
+    CONSTRAINT `FK_DeliveryOrderDrivers_DeliveryOrder_DriverId` FOREIGN KEY (`DeliveryOrderId`) REFERENCES `DeliveryOrder` (`Id`) ON DELETE CASCADE,
+    CONSTRAINT `FK_DeliveryOrderDrivers_Drivers_DriverId` FOREIGN KEY (`DriverId`) REFERENCES `Drivers` (`Id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+/*COMANDAS*/
+CREATE TABLE `BackOrder` (
+    `Id` INT NOT NULL AUTO_INCREMENT,
+    `ClientId` INT NOT NULL,
+    `DeliveryOrderId` INT NOT NULL,
+    `Number` VARCHAR(150) NOT NULL,
+    `Weight` DOUBLE NOT NULL,
+    PRIMARY KEY (`Id`),
+    CONSTRAINT `FK_Invoice_Clients_ClientId` FOREIGN KEY (`ClientId`) REFERENCES `Clients` (`Id`) ON DELETE CASCADE,
+    CONSTRAINT `FK_Invoice_DeliveryOrder_DeliveryOrderId` FOREIGN KEY (`DeliveryOrderId`) REFERENCES `DeliveryOrder` (`Id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+/*COMANDAS*/
+CREATE TABLE `Invoice` (
+    `Id` INT NOT NULL AUTO_INCREMENT,
+    `BackorderId` INT NOT NULL,
+    `Address` VARCHAR(150) NOT NULL,
+    `Reference` VARCHAR(150) NOT NULL,
+    `Value` DOUBLE NOT NULL,
+    `Attatchment` VARCHAR(500) NULL,
+    `SignedAttatchment` VARCHAR(500) NULL,
+    PRIMARY KEY (`Id`),
+    CONSTRAINT `FK_Invoice_Backorder_BackorderId` FOREIGN KEY (`BackorderId`) REFERENCES `BackOrder` (`Id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
