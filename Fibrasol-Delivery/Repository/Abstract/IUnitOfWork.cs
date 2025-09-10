@@ -6,4 +6,5 @@ public interface IUnitOfWork
     public IRiderRepository Riders { get; }
     public IDeliveryOrderStatusRepository DeliveryOrderStatuses { get; }
     public IInvoiceRepository Invoices { get; }
+    public IBackOrderRepository BackOrders { get; }
 }
