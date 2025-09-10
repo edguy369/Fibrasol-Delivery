@@ -9,14 +9,16 @@ public class UnitOfWork : IUnitOfWork
     public IDeliveryOrderStatusRepository DeliveryOrderStatuses { get; }
     public IInvoiceRepository Invoices { get; }
     public IBackOrderRepository BackOrders { get; }
+    public IDeliveryOrderRepository DeliveryOrders { get; }
     public UnitOfWork(IClientRepository clients,
         IRiderRepository riders, IDeliveryOrderStatusRepository deliveryOrderStatuses,
-        IInvoiceRepository invoices, IBackOrderRepository backOrders)
+        IInvoiceRepository invoices, IBackOrderRepository backOrders, IDeliveryOrderRepository deliveryOrders)
     {
         Clients = clients;
         Riders = riders;
         DeliveryOrderStatuses = deliveryOrderStatuses;
         Invoices = invoices;
         BackOrders = backOrders;
+        DeliveryOrders= deliveryOrders;
     }
 }

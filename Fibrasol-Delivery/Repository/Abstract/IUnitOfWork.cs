@@ -7,4 +7,5 @@ public interface IUnitOfWork
     public IDeliveryOrderStatusRepository DeliveryOrderStatuses { get; }
     public IInvoiceRepository Invoices { get; }
     public IBackOrderRepository BackOrders { get; }
+    public IDeliveryOrderRepository DeliveryOrders { get; }
 }
