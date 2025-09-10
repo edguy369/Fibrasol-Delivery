@@ -29,6 +29,14 @@ public class DeliveryOrderController : Controller
     #endregion
 
     #region HTTP Methods
+    [HttpGet]
+    [Route("delivery-orders")]
+    public async Task<IActionResult> GetAllAsync()
+    {
+        var deliveryOrderList = await _unitOfWork.DeliveryOrders.GetAllAsync();
+        return Ok();
+    }
+
     [HttpPost]
     [Route("delivery-orders")]
     public async Task<IActionResult> CreateAsync([FromBody] DeliveryOrderRequest request)
@@ -38,6 +46,17 @@ public class DeliveryOrderController : Controller
             return BadRequest();
 
         return Ok(transactionResult);
+    }
+
+    [HttpPut]
+    [Route("delivery-orders/{id}")]
+    public async Task<IActionResult> UpdateAsync(int id, [FromBody] DeliveryOrderRequest request)
+    {
+        var transactionResult = await _unitOfWork.DeliveryOrders.UpdateAsync(id, request);
+        if (!transactionResult)
+            return BadRequest();
+
+        return Ok();
     }
     #endregion
 }
