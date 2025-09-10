@@ -33,8 +33,9 @@ public class DeliveryOrderController : Controller
     [Route("delivery-orders")]
     public async Task<IActionResult> GetAllAsync()
     {
+        // NO TRAE LOS STATUS
         var deliveryOrderList = await _unitOfWork.DeliveryOrders.GetAllAsync();
-        return Ok();
+        return Ok(deliveryOrderList);
     }
 
     [HttpPost]

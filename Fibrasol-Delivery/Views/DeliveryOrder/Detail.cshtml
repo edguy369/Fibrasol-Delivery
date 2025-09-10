@@ -241,6 +241,9 @@
         const orderId = pathParts[pathParts.length - 1];
         const isNewOrder = orderId === '0';
         
+        // Global variable to track current order ID
+        window.currentOrderId = isNewOrder ? null : parseInt(orderId);
+        
         // Dummy data for demonstration
         const dummyOrderData = {
             1: {
@@ -365,7 +368,36 @@
             document.getElementById('pageTitle').textContent = 'Nueva Constancia de Entrega';
             document.getElementById('orderId').value = 'Nuevo';
             document.getElementById('orderTotal').value = '0.00';
+            
+            // Create new delivery order to get ID
+            createNewDeliveryOrder();
+            
             addBackorder(); // Add one empty backorder by default
+        }
+        
+        function createNewDeliveryOrder() {
+            $.ajax({
+                url: '/delivery-orders',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    Total: 0
+                }),
+                success: function(newOrderId) {
+                    // Update the order ID in the form
+                    document.getElementById('orderId').value = newOrderId;
+                    
+                    // Update the global orderId variable for save operations
+                    window.currentOrderId = newOrderId;
+                    
+                    // Update page title
+                    document.getElementById('pageTitle').textContent = 'Nueva Constancia de Entrega #' + newOrderId;
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error creating new delivery order:', error);
+                    showErrorMessage('Error al crear nueva orden de entrega. Por favor, inténtelo de nuevo.');
+                }
+            });
         }
         
         function loadOrderData(id) {
@@ -375,6 +407,9 @@
                 document.getElementById('orderId').value = orderData.id;
                 document.getElementById('orderStatus').value = orderData.status.id;
                 document.getElementById('orderTotal').value = orderData.total.toFixed(2);
+                
+                // Set the global orderId for save operations
+                window.currentOrderId = orderData.id;
                 
                 // Load backorders
                 orderData.backorders.forEach(backorder => {
@@ -650,14 +685,19 @@
         }
         
         function saveDeliveryOrder() {
+            // Get the current order ID (either from URL or from created order)
+            const currentId = window.currentOrderId || parseInt(orderId);
+            
+            if (!currentId) {
+                showErrorMessage('No se ha establecido un ID de orden válido. Por favor, recargue la página.');
+                return;
+            }
+            
             // Collect form data
             const statusSelect = document.getElementById('orderStatus');
             const selectedStatusOption = statusSelect.options[statusSelect.selectedIndex];
             
             const formData = {
-                id: isNewOrder ? 0 : parseInt(orderId),
-                statusId: parseInt(statusSelect.value),
-                statusName: selectedStatusOption ? selectedStatusOption.getAttribute('data-name') : '',
                 total: parseFloat(document.getElementById('orderTotal').value),
                 backorders: []
             };
@@ -705,18 +745,42 @@
             });
             
             // Validate
-            if (!formData.statusId || formData.backorders.length === 0) {
+            if (!statusSelect.value || formData.backorders.length === 0) {
                 alert('Por favor, complete todos los campos requeridos y agregue al menos una orden de entrega.');
                 return;
             }
             
-            // Show success message
-            showSuccessMessage(isNewOrder ? 'Orden de entrega creada correctamente' : 'Orden de entrega actualizada correctamente');
+            // Disable save button to prevent multiple clicks
+            const saveButton = document.querySelector('.btn-primary-custom');
+            const originalText = saveButton.innerHTML;
+            saveButton.disabled = true;
+            saveButton.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Guardando...';
             
-            // Redirect to list after a short delay
-            setTimeout(function() {
-                window.location.href = '/constancias';
-            }, 1500);
+            // Always use UpdateAsync method
+            $.ajax({
+                url: `/delivery-orders/${currentId}`,
+                type: 'PUT',
+                contentType: 'application/json',
+                data: JSON.stringify(formData),
+                success: function(response) {
+                    // Show success message
+                    showSuccessMessage('Constancia de entrega guardada correctamente');
+                    
+                    // Redirect to list after a short delay
+                    setTimeout(function() {
+                        window.location.href = '/constancias';
+                    }, 1500);
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error saving delivery order:', error);
+                    showErrorMessage('Error al guardar la constancia de entrega. Por favor, inténtelo de nuevo.');
+                },
+                complete: function() {
+                    // Re-enable save button
+                    saveButton.disabled = false;
+                    saveButton.innerHTML = originalText;
+                }
+            });
         }
         
         function showSuccessMessage(message) {
