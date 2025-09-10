@@ -1,8 +1,10 @@
 ﻿using Dapper;
 using Fibrasol_Delivery.Config;
+using Fibrasol_Delivery.Models;
 using Fibrasol_Delivery.Repository.Abstract;
 using Fibrasol_Delivery.Request;
 using MySql.Data.MySqlClient;
+using System.Xml.Linq;
 
 namespace Fibrasol_Delivery.Repository;
 
@@ -35,6 +37,14 @@ public class DeliveryOrderRepository : IDeliveryOrderRepository
             pId = id
         });
         return transactionResult != 0;
+    }
+
+    public async Task<IEnumerable<DeliveryOrderModel>> GetAllAsync()
+    {
+        const string query = "SELECT * FROM DeliveryOrder;";
+        using var conn = new MySqlConnection(_connectionString);
+        var transactionResult = await conn.QueryAsync<DeliveryOrderModel>(query);
+        return transactionResult;
     }
 
     public async Task<bool> UpdateAsync(int id, DeliveryOrderRequest request)
