@@ -1,0 +1,378 @@
+﻿@{
+    ViewData["Title"] = "Detalle de Orden de Entrega";
+}
+
+<style>
+    .page-header {
+        background: linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%);
+        color: white;
+        padding: 2rem;
+        border-radius: 15px;
+        margin-bottom: 2rem;
+        box-shadow: 0 8px 32px rgba(79, 70, 229, 0.3);
+    }
+    
+    .btn-primary-custom {
+        background: linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%);
+        border: none;
+        border-radius: 8px;
+        padding: 0.5rem 1.5rem;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(79, 70, 229, 0.3);
+    }
+    
+    .btn-primary-custom:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(79, 70, 229, 0.4);
+        background: linear-gradient(135deg, #3730a3 0%, #0891b2 100%);
+    }
+    
+    .form-container {
+        background: white;
+        border-radius: 15px;
+        padding: 2rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        margin-bottom: 2rem;
+    }
+    
+    .form-control:focus {
+        border-color: #4f46e5;
+        box-shadow: 0 0 0 0.2rem rgba(79, 70, 229, 0.25);
+    }
+    
+    .form-label {
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 0.5rem;
+    }
+    
+    .status-badge {
+        padding: 0.5rem 1rem;
+        border-radius: 25px;
+        font-size: 0.875rem;
+        font-weight: 600;
+        display: inline-block;
+    }
+    
+    .status-pending {
+        background-color: #fef3c7;
+        color: #92400e;
+    }
+    
+    .status-in-progress {
+        background-color: #dbeafe;
+        color: #1e40af;
+    }
+    
+    .status-delivered {
+        background-color: #d1fae5;
+        color: #065f46;
+    }
+    
+    .status-cancelled {
+        background-color: #fee2e2;
+        color: #991b1b;
+    }
+    
+    .backorder-card {
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        background-color: #f9fafb;
+    }
+    
+    .info-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.75rem 0;
+        border-bottom: 1px solid #e5e7eb;
+    }
+    
+    .info-row:last-child {
+        border-bottom: none;
+    }
+    
+    .info-label {
+        font-weight: 600;
+        color: #374151;
+    }
+    
+    .info-value {
+        color: #6b7280;
+    }
+</style>
+
+<div class="page-header mt-4">
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            <h1 class="mb-2"><i class="bi bi-truck me-3"></i><span id="pageTitle">Nueva Orden de Entrega</span></h1>
+            <p class="mb-0 opacity-75">Gestiona los detalles de la orden de entrega</p>
+        </div>
+        <a href="/constancias" class="btn btn-light btn-lg">
+            <i class="bi bi-arrow-left me-2"></i>Volver a Lista
+        </a>
+    </div>
+</div>
+
+<div class="form-container">
+    <form id="deliveryOrderForm">
+        <div class="row">
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <label for="orderId" class="form-label">ID de Orden</label>
+                    <input type="text" class="form-control" id="orderId" readonly>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <label for="orderStatus" class="form-label">Estado</label>
+                    <select class="form-select" id="orderStatus">
+                        <option value="Pendiente">Pendiente</option>
+                        <option value="En Progreso">En Progreso</option>
+                        <option value="Entregado">Entregado</option>
+                        <option value="Cancelado">Cancelado</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <label for="orderDate" class="form-label">Fecha de Creación</label>
+                    <input type="datetime-local" class="form-control" id="orderDate">
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <label for="orderTotal" class="form-label">Total</label>
+                    <div class="input-group">
+                        <span class="input-group-text">$</span>
+                        <input type="number" class="form-control" id="orderTotal" step="0.01" min="0">
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="mb-4">
+            <h5 class="mb-3">Productos de la Orden</h5>
+            <div id="backordersContainer">
+                <!-- Backorders will be loaded here -->
+            </div>
+            <button type="button" class="btn btn-outline-primary" onclick="addBackorder()">
+                <i class="bi bi-plus-circle me-2"></i>Agregar Producto
+            </button>
+        </div>
+        
+        <div class="d-flex justify-content-end gap-2">
+            <button type="button" class="btn btn-secondary" onclick="window.location.href='/constancias'">
+                Cancelar
+            </button>
+            <button type="button" class="btn btn-primary-custom" onclick="saveDeliveryOrder()">
+                <i class="bi bi-floppy me-2"></i>Guardar Orden
+            </button>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <script>
+        // Get order ID from URL
+        const pathParts = window.location.pathname.split('/');
+        const orderId = pathParts[pathParts.length - 1];
+        const isNewOrder = orderId === '0';
+        
+        // Dummy data for demonstration
+        const dummyOrderData = {
+            1: {
+                id: 1,
+                status: { name: "Pendiente" },
+                created: "2024-01-15T08:30:00",
+                total: 150.75,
+                backorders: [
+                    { id: 1, productName: "Producto A", quantity: 2, unitPrice: 50.25 },
+                    { id: 2, productName: "Producto B", quantity: 1, unitPrice: 50.25 }
+                ]
+            },
+            2: {
+                id: 2,
+                status: { name: "En Progreso" },
+                created: "2024-01-14T14:20:00",
+                total: 225.50,
+                backorders: [
+                    { id: 3, productName: "Producto C", quantity: 3, unitPrice: 75.17 }
+                ]
+            }
+        };
+        
+        $(document).ready(function() {
+            if (isNewOrder) {
+                setupNewOrder();
+            } else {
+                loadOrderData(parseInt(orderId));
+            }
+        });
+        
+        function setupNewOrder() {
+            document.getElementById('pageTitle').textContent = 'Nueva Orden de Entrega';
+            document.getElementById('orderId').value = 'Nuevo';
+            document.getElementById('orderDate').value = new Date().toISOString().slice(0, 16);
+            document.getElementById('orderTotal').value = '0.00';
+            addBackorder(); // Add one empty backorder by default
+        }
+        
+        function loadOrderData(id) {
+            const orderData = dummyOrderData[id];
+            if (orderData) {
+                document.getElementById('pageTitle').textContent = 'Editar Orden de Entrega #' + id;
+                document.getElementById('orderId').value = orderData.id;
+                document.getElementById('orderStatus').value = orderData.status.name;
+                document.getElementById('orderDate').value = orderData.created.slice(0, 16);
+                document.getElementById('orderTotal').value = orderData.total.toFixed(2);
+                
+                // Load backorders
+                orderData.backorders.forEach(backorder => {
+                    addBackorder(backorder);
+                });
+            } else {
+                // Order not found, treat as new
+                setupNewOrder();
+            }
+        }
+        
+        function addBackorder(data = null) {
+            const backordersContainer = document.getElementById('backordersContainer');
+            const backorderIndex = backordersContainer.children.length;
+            
+            const backorderHtml = `
+                <div class="backorder-card" data-index="${backorderIndex}">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h6 class="mb-0">Producto ${backorderIndex + 1}</h6>
+                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeBackorder(${backorderIndex})">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <label class="form-label">Nombre del Producto</label>
+                            <input type="text" class="form-control backorder-product" value="${data ? data.productName : ''}" placeholder="Ingrese el nombre del producto">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Cantidad</label>
+                            <input type="number" class="form-control backorder-quantity" value="${data ? data.quantity : ''}" min="1" placeholder="0" onchange="updateOrderTotal()">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Precio Unitario</label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="number" class="form-control backorder-price" value="${data ? data.unitPrice.toFixed(2) : ''}" step="0.01" min="0" placeholder="0.00" onchange="updateOrderTotal()">
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Subtotal</label>
+                            <div class="form-control-plaintext backorder-subtotal">$0.00</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            backordersContainer.insertAdjacentHTML('beforeend', backorderHtml);
+            updateOrderTotal();
+        }
+        
+        function removeBackorder(index) {
+            const backorderCard = document.querySelector(`[data-index="${index}"]`);
+            if (backorderCard) {
+                backorderCard.remove();
+                updateOrderTotal();
+                // Reindex remaining backorders
+                reindexBackorders();
+            }
+        }
+        
+        function reindexBackorders() {
+            const backorders = document.querySelectorAll('.backorder-card');
+            backorders.forEach((backorder, index) => {
+                backorder.setAttribute('data-index', index);
+                backorder.querySelector('h6').textContent = `Producto ${index + 1}`;
+                const removeBtn = backorder.querySelector('.btn-outline-danger');
+                removeBtn.setAttribute('onclick', `removeBackorder(${index})`);
+            });
+        }
+        
+        function updateOrderTotal() {
+            let total = 0;
+            const backorders = document.querySelectorAll('.backorder-card');
+            
+            backorders.forEach(backorder => {
+                const quantity = parseFloat(backorder.querySelector('.backorder-quantity').value) || 0;
+                const price = parseFloat(backorder.querySelector('.backorder-price').value) || 0;
+                const subtotal = quantity * price;
+                
+                backorder.querySelector('.backorder-subtotal').textContent = '$' + subtotal.toFixed(2);
+                total += subtotal;
+            });
+            
+            document.getElementById('orderTotal').value = total.toFixed(2);
+        }
+        
+        function saveDeliveryOrder() {
+            // Collect form data
+            const formData = {
+                id: isNewOrder ? 0 : parseInt(orderId),
+                status: document.getElementById('orderStatus').value,
+                created: document.getElementById('orderDate').value,
+                total: parseFloat(document.getElementById('orderTotal').value),
+                backorders: []
+            };
+            
+            // Collect backorders data
+            const backorders = document.querySelectorAll('.backorder-card');
+            backorders.forEach(backorder => {
+                const productName = backorder.querySelector('.backorder-product').value;
+                const quantity = parseInt(backorder.querySelector('.backorder-quantity').value) || 0;
+                const unitPrice = parseFloat(backorder.querySelector('.backorder-price').value) || 0;
+                
+                if (productName && quantity > 0 && unitPrice > 0) {
+                    formData.backorders.push({
+                        productName,
+                        quantity,
+                        unitPrice
+                    });
+                }
+            });
+            
+            // Validate
+            if (!formData.status || formData.backorders.length === 0) {
+                alert('Por favor, complete todos los campos requeridos y agregue al menos un producto.');
+                return;
+            }
+            
+            // Show success message
+            showSuccessMessage(isNewOrder ? 'Orden de entrega creada correctamente' : 'Orden de entrega actualizada correctamente');
+            
+            // Redirect to list after a short delay
+            setTimeout(function() {
+                window.location.href = '/constancias';
+            }, 1500);
+        }
+        
+        function showSuccessMessage(message) {
+            // Create and show a temporary success alert
+            var alertHtml = '<div class="alert alert-success alert-dismissible fade show" role="alert">' +
+                           '<i class="bi bi-check-circle me-2"></i>' + message +
+                           '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>' +
+                           '</div>';
+            
+            $('.page-header').after(alertHtml);
+            
+            // Auto-dismiss after 3 seconds
+            setTimeout(function() {
+                $('.alert-success').fadeOut();
+            }, 3000);
+        }
+    </script>
+}
