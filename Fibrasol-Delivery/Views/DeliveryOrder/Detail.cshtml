@@ -83,6 +83,71 @@
         background-color: #f9fafb;
     }
     
+    .factura-section {
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid #d1d5db;
+    }
+    
+    .factura-card {
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        padding: 0.75rem;
+        margin-bottom: 0.75rem;
+        background-color: #ffffff;
+        position: relative;
+    }
+    
+    .factura-header {
+        background-color: #f3f4f6;
+        padding: 0.5rem;
+        margin: -0.75rem -0.75rem 0.75rem -0.75rem;
+        border-radius: 6px 6px 0 0;
+        border-bottom: 1px solid #d1d5db;
+    }
+    
+    .btn-sm-custom {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+    }
+    
+    .client-search-container {
+        position: relative;
+    }
+    
+    .client-dropdown {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: white;
+        border: 1px solid #d1d5db;
+        border-top: none;
+        border-radius: 0 0 6px 6px;
+        max-height: 200px;
+        overflow-y: auto;
+        z-index: 1000;
+        display: none;
+    }
+    
+    .client-dropdown-item {
+        padding: 0.5rem;
+        cursor: pointer;
+        border-bottom: 1px solid #f3f4f6;
+    }
+    
+    .client-dropdown-item:hover {
+        background-color: #f3f4f6;
+    }
+    
+    .client-dropdown-item:last-child {
+        border-bottom: none;
+    }
+    
+    .client-dropdown-item.active {
+        background-color: #e0e7ff;
+    }
+    
     .info-row {
         display: flex;
         justify-content: space-between;
@@ -182,25 +247,78 @@
                 id: 1,
                 status: { id: 1, name: "Pendiente" },
                 created: "2024-01-15T08:30:00",
-                total: 150.75,
+                total: 2575.75,
                 backorders: [
-                    { id: 1, client: "Cliente ABC", commandNumber: "CMD-001", totalWeight: 25.500 },
-                    { id: 2, client: "Cliente XYZ", commandNumber: "CMD-002", totalWeight: 18.750 }
+                    { 
+                        id: 1, 
+                        client: "Cliente ABC",
+                        clientId: 1,
+                        commandNumber: "CMD-001", 
+                        totalWeight: 25.500,
+                        facturas: [
+                            { 
+                                direccion: "Zona 10, Guatemala City", 
+                                reference: "REF-001", 
+                                value: 1250.00,
+                                facturaFileName: "factura_001.pdf",
+                                facturaFirmadaFileName: "factura_firmada_001.pdf"
+                            }
+                        ]
+                    },
+                    { 
+                        id: 2, 
+                        client: "Cliente XYZ",
+                        clientId: 2,
+                        commandNumber: "CMD-002", 
+                        totalWeight: 18.750,
+                        facturas: [
+                            { 
+                                direccion: "Zona 15, Guatemala City", 
+                                reference: "REF-002", 
+                                value: 875.50,
+                                facturaFileName: "factura_002.pdf",
+                                facturaFirmadaFileName: null
+                            },
+                            { 
+                                direccion: "Mixco, Guatemala", 
+                                reference: "REF-002B", 
+                                value: 450.25,
+                                facturaFileName: "factura_002b.pdf",
+                                facturaFirmadaFileName: "factura_firmada_002b.pdf"
+                            }
+                        ]
+                    }
                 ]
             },
             2: {
                 id: 2,
                 status: { id: 2, name: "En Progreso" },
                 created: "2024-01-14T14:20:00",
-                total: 225.50,
+                total: 2100.00,
                 backorders: [
-                    { id: 3, client: "Cliente DEF", commandNumber: "CMD-003", totalWeight: 42.250 }
+                    { 
+                        id: 3, 
+                        client: "Cliente DEF",
+                        clientId: 3,
+                        commandNumber: "CMD-003", 
+                        totalWeight: 42.250,
+                        facturas: [
+                            { 
+                                direccion: "Antigua Guatemala", 
+                                reference: "REF-003", 
+                                value: 2100.00,
+                                facturaFileName: "factura_003.pdf",
+                                facturaFirmadaFileName: "factura_firmada_003.pdf"
+                            }
+                        ]
+                    }
                 ]
             }
         };
         
         $(document).ready(function() {
-            loadDeliveryStatuses().then(() => {
+            // Load both statuses and clients
+            Promise.all([loadDeliveryStatuses(), loadClients()]).then(() => {
                 if (isNewOrder) {
                     setupNewOrder();
                 } else {
@@ -283,7 +401,11 @@
                     <div class="row">
                         <div class="col-md-4">
                             <label class="form-label">Cliente</label>
-                            <input type="text" class="form-control backorder-client" value="${data ? data.client : ''}" placeholder="Ingrese el nombre del cliente">
+                            <div class="client-search-container">
+                                <input type="text" class="form-control backorder-client" value="${data ? data.client : ''}" placeholder="Buscar cliente..." autocomplete="off" onkeyup="searchClients(this)" onfocus="searchClients(this)" onblur="hideClientDropdown(this)">
+                                <input type="hidden" class="backorder-client-id" value="${data ? data.clientId : ''}">
+                                <div class="client-dropdown"></div>
+                            </div>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">No. Commanda</label>
@@ -292,16 +414,37 @@
                         <div class="col-md-4">
                             <label class="form-label">Peso Total Toneladas</label>
                             <div class="input-group">
-                                <input type="number" class="form-control backorder-weight" value="${data ? data.totalWeight.toFixed(3) : ''}" step="0.001" min="0" placeholder="0.000" onchange="updateOrderTotal()">
+                                <input type="number" class="form-control backorder-weight" value="${data ? data.totalWeight.toFixed(3) : ''}" step="0.001" min="0" placeholder="0.000">
                                 <span class="input-group-text">Ton</span>
                             </div>
+                        </div>
+                    </div>
+                    
+                    <div class="factura-section">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6 class="mb-0">Facturas</h6>
+                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="addFactura(${backorderIndex})">
+                                <i class="bi bi-plus-circle me-1"></i>Agregar Factura
+                            </button>
+                        </div>
+                        <div class="facturas-container" data-comanda="${backorderIndex}">
+                            <!-- Facturas will be added here -->
                         </div>
                     </div>
                 </div>
             `;
             
             backordersContainer.insertAdjacentHTML('beforeend', backorderHtml);
-            updateOrderTotal();
+            
+            // Add facturas if data exists
+            if (data && data.facturas && data.facturas.length > 0) {
+                data.facturas.forEach(factura => {
+                    addFactura(backorderIndex, factura);
+                });
+            }
+            
+            // Update total after adding all facturas
+            setTimeout(() => updateOrderTotal(), 100);
         }
         
         function removeBackorder(index) {
@@ -321,23 +464,189 @@
                 backorder.querySelector('h6').textContent = `Comanda ${index + 1}`;
                 const removeBtn = backorder.querySelector('.btn-outline-danger');
                 removeBtn.setAttribute('onclick', `removeBackorder(${index})`);
+                
+                // Update factura section data-comanda attribute
+                const facturasContainer = backorder.querySelector('.facturas-container');
+                facturasContainer.setAttribute('data-comanda', index);
+                
+                // Update addFactura button onclick
+                const addFacturaBtn = backorder.querySelector('.btn-outline-primary');
+                addFacturaBtn.setAttribute('onclick', `addFactura(${index})`);
+            });
+        }
+        
+        function addFactura(comandaIndex, data = null) {
+            const facturasContainer = document.querySelector(`[data-comanda="${comandaIndex}"]`);
+            const facturaIndex = facturasContainer.children.length;
+            
+            const facturaHtml = `
+                <div class="factura-card" data-factura-index="${facturaIndex}">
+                    <div class="factura-header">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <small class="fw-bold">Factura ${facturaIndex + 1}</small>
+                            <button type="button" class="btn btn-sm-custom btn-outline-danger" onclick="removeFactura(${comandaIndex}, ${facturaIndex})">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label class="form-label">Dirección</label>
+                            <input type="text" class="form-control factura-direccion" value="${data ? data.direccion : ''}" placeholder="Ingrese la dirección">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Referencia</label>
+                            <input type="text" class="form-control factura-reference" value="${data ? data.reference : ''}" placeholder="Ingrese la referencia">
+                        </div>
+                    </div>
+                    <div class="row mt-2">
+                        <div class="col-md-4">
+                            <label class="form-label">Valor</label>
+                            <div class="input-group">
+                                <span class="input-group-text">Q</span>
+                                <input type="number" class="form-control factura-value" value="${data ? data.value.toFixed(2) : ''}" step="0.01" min="0" placeholder="0.00" onchange="updateOrderTotal()" oninput="updateOrderTotal()">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Factura</label>
+                            <input type="file" class="form-control factura-file" accept=".pdf,.jpg,.jpeg,.png">
+                            ${data && data.facturaFileName ? `<small class="text-muted">Archivo actual: ${data.facturaFileName}</small>` : ''}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Factura Firmada</label>
+                            <input type="file" class="form-control factura-signed-file" accept=".pdf,.jpg,.jpeg,.png">
+                            ${data && data.facturaFirmadaFileName ? `<small class="text-muted">Archivo actual: ${data.facturaFirmadaFileName}</small>` : ''}
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            facturasContainer.insertAdjacentHTML('beforeend', facturaHtml);
+            
+            // Update total after adding factura
+            updateOrderTotal();
+        }
+        
+        function removeFactura(comandaIndex, facturaIndex) {
+            const facturaCard = document.querySelector(`[data-comanda="${comandaIndex}"] [data-factura-index="${facturaIndex}"]`);
+            if (facturaCard) {
+                facturaCard.remove();
+                reindexFacturas(comandaIndex);
+                
+                // Update total after removing factura
+                updateOrderTotal();
+            }
+        }
+        
+        function reindexFacturas(comandaIndex) {
+            const facturasContainer = document.querySelector(`[data-comanda="${comandaIndex}"]`);
+            const facturas = facturasContainer.querySelectorAll('.factura-card');
+            
+            facturas.forEach((factura, index) => {
+                factura.setAttribute('data-factura-index', index);
+                factura.querySelector('small').textContent = `Factura ${index + 1}`;
+                const removeBtn = factura.querySelector('.btn-outline-danger');
+                removeBtn.setAttribute('onclick', `removeFactura(${comandaIndex}, ${index})`);
             });
         }
         
         function updateOrderTotal() {
-            let totalWeight = 0;
+            let totalValue = 0;
             const backorders = document.querySelectorAll('.backorder-card');
             
             backorders.forEach(backorder => {
-                const weight = parseFloat(backorder.querySelector('.backorder-weight').value) || 0;
-                totalWeight += weight;
+                // Get all factura values within this comanda
+                const facturaValues = backorder.querySelectorAll('.factura-value');
+                facturaValues.forEach(facturaValue => {
+                    const value = parseFloat(facturaValue.value) || 0;
+                    totalValue += value;
+                });
             });
             
-            // For demonstration, calculate total based on weight (e.g., $100 per ton)
-            const pricePerTon = 100;
-            const total = totalWeight * pricePerTon;
+            document.getElementById('orderTotal').value = totalValue.toFixed(2);
+        }
+        
+        // Client search functionality
+        let clientsData = [];
+        let searchTimeout;
+        
+        // Load all clients on page load
+        function loadClients() {
+            return $.ajax({
+                url: '/clients',
+                type: 'GET',
+                success: function(clients) {
+                    clientsData = clients;
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error loading clients:', error);
+                    clientsData = [];
+                }
+            });
+        }
+        
+        function searchClients(input) {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                const searchTerm = input.value.toLowerCase().trim();
+                const dropdown = input.parentElement.querySelector('.client-dropdown');
+                
+                if (searchTerm.length === 0) {
+                    showAllClients(dropdown);
+                    return;
+                }
+                
+                const filteredClients = clientsData.filter(client => 
+                    client.name.toLowerCase().includes(searchTerm)
+                );
+                
+                showClientDropdown(dropdown, filteredClients, input);
+            }, 300);
+        }
+        
+        function showAllClients(dropdown) {
+            showClientDropdown(dropdown, clientsData.slice(0, 10), null); // Show first 10 clients
+        }
+        
+        function showClientDropdown(dropdown, clients, input) {
+            dropdown.innerHTML = '';
             
-            document.getElementById('orderTotal').value = total.toFixed(2);
+            if (clients.length === 0) {
+                dropdown.innerHTML = '<div class="client-dropdown-item">No se encontraron clientes</div>';
+            } else {
+                clients.forEach(client => {
+                    const item = document.createElement('div');
+                    item.className = 'client-dropdown-item';
+                    item.textContent = client.name;
+                    item.setAttribute('data-client-id', client.id);
+                    
+                    item.addEventListener('mousedown', function(e) {
+                        e.preventDefault(); // Prevent blur event
+                        selectClient(input || dropdown.parentElement.querySelector('.backorder-client'), client);
+                    });
+                    
+                    dropdown.appendChild(item);
+                });
+            }
+            
+            dropdown.style.display = 'block';
+        }
+        
+        function selectClient(input, client) {
+            const container = input.parentElement;
+            const clientIdInput = container.querySelector('.backorder-client-id');
+            const dropdown = container.querySelector('.client-dropdown');
+            
+            input.value = client.name;
+            clientIdInput.value = client.id;
+            dropdown.style.display = 'none';
+        }
+        
+        function hideClientDropdown(input) {
+            setTimeout(() => {
+                const dropdown = input.parentElement.querySelector('.client-dropdown');
+                dropdown.style.display = 'none';
+            }, 200); // Delay to allow click events to fire
         }
         
         function saveDeliveryOrder() {
@@ -355,16 +664,42 @@
             
             // Collect backorders data
             const backorders = document.querySelectorAll('.backorder-card');
-            backorders.forEach(backorder => {
+            backorders.forEach((backorder, backorderIndex) => {
                 const client = backorder.querySelector('.backorder-client').value;
+                const clientId = backorder.querySelector('.backorder-client-id').value;
                 const commandNumber = backorder.querySelector('.backorder-command').value;
                 const totalWeight = parseFloat(backorder.querySelector('.backorder-weight').value) || 0;
+                
+                // Collect facturas for this comanda
+                const facturas = [];
+                const facturasContainer = backorder.querySelector('.facturas-container');
+                const facturaCards = facturasContainer.querySelectorAll('.factura-card');
+                
+                facturaCards.forEach(facturaCard => {
+                    const direccion = facturaCard.querySelector('.factura-direccion').value;
+                    const reference = facturaCard.querySelector('.factura-reference').value;
+                    const value = parseFloat(facturaCard.querySelector('.factura-value').value) || 0;
+                    const facturaFile = facturaCard.querySelector('.factura-file').files[0];
+                    const facturaSignedFile = facturaCard.querySelector('.factura-signed-file').files[0];
+                    
+                    if (direccion && reference && value > 0) {
+                        facturas.push({
+                            direccion,
+                            reference,
+                            value,
+                            facturaFile: facturaFile ? facturaFile.name : null,
+                            facturaSignedFile: facturaSignedFile ? facturaSignedFile.name : null
+                        });
+                    }
+                });
                 
                 if (client && commandNumber && totalWeight > 0) {
                     formData.backorders.push({
                         client,
+                        clientId,
                         commandNumber,
-                        totalWeight
+                        totalWeight,
+                        facturas
                     });
                 }
             });
