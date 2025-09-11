@@ -6,6 +6,7 @@ namespace Fibrasol_Delivery.Repository.Abstract;
 public interface IDeliveryOrderRepository
 {
     Task<IEnumerable<DeliveryOrderModel>> GetAllAsync();
+    Task<DeliveryOrderModel> GetByIdAsync(int id);
     Task<int> CreateAsync(DeliveryOrderRequest request);
     Task<bool> UpdateAsync(int id, DeliveryOrderRequest request);
     Task<bool> DeleteAsync(int id);

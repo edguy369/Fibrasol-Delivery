@@ -6,6 +6,7 @@ using Fibrasol_Delivery.Request;
 using Microsoft.Extensions.Hosting;
 using MySql.Data.MySqlClient;
 using System.Collections.Specialized;
+using System.Security.Cryptography;
 using System.Xml.Linq;
 
 namespace Fibrasol_Delivery.Repository;
@@ -53,6 +54,24 @@ public class DeliveryOrderRepository : IDeliveryOrderRepository
         },
         splitOn:  "StatusId");
         return transactionResult;
+    }
+
+    public async Task<DeliveryOrderModel> GetByIdAsync(int id)
+    {
+        const string query = "SELECT a.Id, a.Created, a.Total, a.StatusId, b.Id, b.Name,c.Id AS BackorderId,c.Id, c.Number, c.Weight, d.Id AS ClientId,d.Id,d.Name,e.Id AS InvoiceId,e.Address,e.Reference,e.Value,e.Attatchment,e.SignedAttatchmentFrom DeliveryOrder a INNER JOIN DeliveryOrderStatus b ON a.StatusId = b.IdLEFT JOIN BackOrder c ON a.Id = c.DeliveryOrderIdLEFT JOIN Clients d ON d.Id = c.ClientIdLEFT JOIN Invoice e ON e.BackorderId = c.Id WHERE a.Id = @pId;";
+        using var conn = new MySqlConnection(_connectionString);
+        var transactionResult = await conn.QueryAsync<DeliveryOrderModel, DeliveryOrderStatusModel, DeliveryOrderModel>(query,
+        (deliveryOrder, status) =>
+        {
+            deliveryOrder.Status = status;
+            return deliveryOrder;
+        },
+        new
+        {
+            pId = id
+        },
+        splitOn: "StatusId");
+        return transactionResult.FirstOrDefault();
     }
 
     public async Task<bool> UpdateAsync(int id, DeliveryOrderRequest request)
