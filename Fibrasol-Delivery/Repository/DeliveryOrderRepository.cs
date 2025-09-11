@@ -3,7 +3,9 @@ using Fibrasol_Delivery.Config;
 using Fibrasol_Delivery.Models;
 using Fibrasol_Delivery.Repository.Abstract;
 using Fibrasol_Delivery.Request;
+using Microsoft.Extensions.Hosting;
 using MySql.Data.MySqlClient;
+using System.Collections.Specialized;
 using System.Xml.Linq;
 
 namespace Fibrasol_Delivery.Repository;
@@ -41,9 +43,15 @@ public class DeliveryOrderRepository : IDeliveryOrderRepository
 
     public async Task<IEnumerable<DeliveryOrderModel>> GetAllAsync()
     {
-        const string query = "SELECT * FROM DeliveryOrder;";
+        const string query = "SELECT a.Id, a.Created, a.Total, a.StatusId, b.Id, b.Name From DeliveryOrder a INNER JOIN DeliveryOrderStatus b ON a.StatusId = b.Id;";
         using var conn = new MySqlConnection(_connectionString);
-        var transactionResult = await conn.QueryAsync<DeliveryOrderModel>(query);
+        var transactionResult = await conn.QueryAsync<DeliveryOrderModel, DeliveryOrderStatusModel, DeliveryOrderModel>(query,
+        (deliveryOrder, status) =>
+        {
+            deliveryOrder.Status = status;
+            return deliveryOrder;
+        },
+        splitOn:  "StatusId");
         return transactionResult;
     }
 
