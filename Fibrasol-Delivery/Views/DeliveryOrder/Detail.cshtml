@@ -244,81 +244,6 @@
         // Global variable to track current order ID
         window.currentOrderId = isNewOrder ? null : parseInt(orderId);
         
-        // Dummy data for demonstration
-        const dummyOrderData = {
-            1: {
-                id: 1,
-                status: { id: 1, name: "Pendiente" },
-                created: "2024-01-15T08:30:00",
-                total: 2575.75,
-                backorders: [
-                    { 
-                        id: 1, 
-                        client: "Cliente ABC",
-                        clientId: 1,
-                        commandNumber: "CMD-001", 
-                        totalWeight: 25.500,
-                        facturas: [
-                            { 
-                                direccion: "Zona 10, Guatemala City", 
-                                reference: "REF-001", 
-                                value: 1250.00,
-                                facturaFileName: "factura_001.pdf",
-                                facturaFirmadaFileName: "factura_firmada_001.pdf"
-                            }
-                        ]
-                    },
-                    { 
-                        id: 2, 
-                        client: "Cliente XYZ",
-                        clientId: 2,
-                        commandNumber: "CMD-002", 
-                        totalWeight: 18.750,
-                        facturas: [
-                            { 
-                                direccion: "Zona 15, Guatemala City", 
-                                reference: "REF-002", 
-                                value: 875.50,
-                                facturaFileName: "factura_002.pdf",
-                                facturaFirmadaFileName: null
-                            },
-                            { 
-                                direccion: "Mixco, Guatemala", 
-                                reference: "REF-002B", 
-                                value: 450.25,
-                                facturaFileName: "factura_002b.pdf",
-                                facturaFirmadaFileName: "factura_firmada_002b.pdf"
-                            }
-                        ]
-                    }
-                ]
-            },
-            2: {
-                id: 2,
-                status: { id: 2, name: "En Progreso" },
-                created: "2024-01-14T14:20:00",
-                total: 2100.00,
-                backorders: [
-                    { 
-                        id: 3, 
-                        client: "Cliente DEF",
-                        clientId: 3,
-                        commandNumber: "CMD-003", 
-                        totalWeight: 42.250,
-                        facturas: [
-                            { 
-                                direccion: "Antigua Guatemala", 
-                                reference: "REF-003", 
-                                value: 2100.00,
-                                facturaFileName: "factura_003.pdf",
-                                facturaFirmadaFileName: "factura_firmada_003.pdf"
-                            }
-                        ]
-                    }
-                ]
-            }
-        };
-        
         $(document).ready(function() {
             // Load both statuses and clients
             Promise.all([loadDeliveryStatuses(), loadClients()]).then(() => {
@@ -335,6 +260,7 @@
                 url: '/delivery-statuses',
                 type: 'GET',
                 success: function(statuses) {
+                    console.log('Delivery statuses loaded:', statuses);
                     const statusSelect = $('#orderStatus');
                     statusSelect.empty();
                     
@@ -345,9 +271,12 @@
                     statuses.forEach(function(status) {
                         statusSelect.append(`<option value="${status.id}" data-name="${status.name}">${status.name}</option>`);
                     });
+                    
+                    console.log('Status options added to dropdown');
                 },
                 error: function(xhr, status, error) {
                     console.error('Error loading delivery statuses:', error);
+                    console.log('XHR Response:', xhr.responseText);
                     
                     // Fallback to static options if API fails
                     const statusSelect = $('#orderStatus');
@@ -401,24 +330,53 @@
         }
         
         function loadOrderData(id) {
-            const orderData = dummyOrderData[id];
-            if (orderData) {
-                document.getElementById('pageTitle').textContent = 'Editar Constancia de Entrega #' + id;
-                document.getElementById('orderId').value = orderData.id;
-                document.getElementById('orderStatus').value = orderData.status.id;
-                document.getElementById('orderTotal').value = orderData.total.toFixed(2);
-                
-                // Set the global orderId for save operations
-                window.currentOrderId = orderData.id;
-                
-                // Load backorders
-                orderData.backorders.forEach(backorder => {
-                    addBackorder(backorder);
-                });
-            } else {
-                // Order not found, treat as new
-                setupNewOrder();
-            }
+            $.ajax({
+                url: `/delivery-orders/${id}`,
+                type: 'GET',
+                success: function(orderData) {
+                    console.log('Order data loaded:', orderData);
+                    if (orderData) {
+                        document.getElementById('pageTitle').textContent = 'Editar Constancia de Entrega #' + id;
+                        document.getElementById('orderId').value = orderData.id;
+                        document.getElementById('orderTotal').value = orderData.total.toFixed(2);
+                        
+                        // Set the status value - ensure dropdown is populated first
+                        const statusSelect = document.getElementById('orderStatus');
+                        if (orderData.statusId) {
+                            console.log('Setting status to:', orderData.statusId);
+                            statusSelect.value = orderData.statusId;
+                            
+                            // Verify the status was set
+                            if (statusSelect.value !== orderData.statusId) {
+                                console.warn('Status not set correctly. Available options:');
+                                for (let option of statusSelect.options) {
+                                    console.log(`Option value: ${option.value}, text: ${option.text}`);
+                                }
+                            }
+                        }
+                        
+                        // Set the global orderId for save operations
+                        window.currentOrderId = orderData.id;
+                        
+                        // Load backorders if they exist
+                        if (orderData.backorders && orderData.backorders.length > 0) {
+                            orderData.backorders.forEach(backorder => {
+                                addBackorder(backorder);
+                            });
+                        }
+                    } else {
+                        // Order not found, treat as new
+                        setupNewOrder();
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error loading delivery order:', error);
+                    console.log('XHR Response:', xhr.responseText);
+                    // On error, treat as new order
+                    setupNewOrder();
+                    showErrorMessage('Error al cargar la orden de entrega. Se ha iniciado una nueva orden.');
+                }
+            });
         }
         
         function addBackorder(data = null) {

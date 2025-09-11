@@ -37,6 +37,19 @@ public class DeliveryOrderController : Controller
         return Ok(deliveryOrderList);
     }
 
+    [HttpGet]
+    [Route("delivery-orders/{id}")]
+    public async Task<IActionResult> GetAsyncById(int id)
+    {
+        if (id == 0)
+        {
+            return Ok(null);
+        }
+        
+        var deliveryOrder = await _unitOfWork.DeliveryOrders.GetByIdAsync(id);
+        return Ok(deliveryOrder);
+    }
+
     [HttpPost]
     [Route("delivery-orders")]
     public async Task<IActionResult> CreateAsync([FromBody] DeliveryOrderRequest request)
@@ -53,6 +66,17 @@ public class DeliveryOrderController : Controller
     public async Task<IActionResult> UpdateAsync(int id, [FromBody] DeliveryOrderRequest request)
     {
         var transactionResult = await _unitOfWork.DeliveryOrders.UpdateAsync(id, request);
+        if (!transactionResult)
+            return BadRequest();
+
+        return Ok();
+    }
+
+    [HttpDelete]
+    [Route("delivery-orders/{id}")]
+    public async Task<IActionResult> DeleteAsync(int id)
+    {
+        var transactionResult = await _unitOfWork.DeliveryOrders.DeleteAsync(id);
         if (!transactionResult)
             return BadRequest();
 
