@@ -342,12 +342,12 @@
                         
                         // Set the status value - ensure dropdown is populated first
                         const statusSelect = document.getElementById('orderStatus');
-                        if (orderData.statusId) {
-                            console.log('Setting status to:', orderData.statusId);
-                            statusSelect.value = orderData.statusId;
+                        if (orderData.status.id) {
+                            console.log('Setting status to:', orderData.status.name);
+                            statusSelect.value = orderData.status.id;
                             
                             // Verify the status was set
-                            if (statusSelect.value !== orderData.statusId) {
+                                if (statusSelect.value !== orderData.status.id) {
                                 console.warn('Status not set correctly. Available options:');
                                 for (let option of statusSelect.options) {
                                     console.log(`Option value: ${option.value}, text: ${option.text}`);
@@ -395,19 +395,19 @@
                         <div class="col-md-4">
                             <label class="form-label">Cliente</label>
                             <div class="client-search-container">
-                                <input type="text" class="form-control backorder-client" value="${data ? data.client : ''}" placeholder="Buscar cliente..." autocomplete="off" onkeyup="searchClients(this)" onfocus="searchClients(this)" onblur="hideClientDropdown(this)">
-                                <input type="hidden" class="backorder-client-id" value="${data ? data.clientId : ''}">
+                                <input type="text" class="form-control backorder-client" value="${data ? (data.client ? data.client.name : '') : ''}" placeholder="Buscar cliente..." autocomplete="off" onkeyup="searchClients(this)" onfocus="searchClients(this)" onblur="hideClientDropdown(this)">
+                                <input type="hidden" class="backorder-client-id" value="${data ? (data.client ? data.client.id : '') : ''}">
                                 <div class="client-dropdown"></div>
                             </div>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">No. Commanda</label>
-                            <input type="text" class="form-control backorder-command" value="${data ? data.commandNumber : ''}" placeholder="Ingrese el número de commanda">
+                            <input type="text" class="form-control backorder-command" value="${data ? data.number : ''}" placeholder="Ingrese el número de commanda">
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Peso Total Toneladas</label>
                             <div class="input-group">
-                                <input type="number" class="form-control backorder-weight" value="${data ? data.totalWeight.toFixed(3) : ''}" step="0.001" min="0" placeholder="0.000">
+                                <input type="number" class="form-control backorder-weight" value="${data ? data.weight.toFixed(3) : ''}" step="0.001" min="0" placeholder="0.000">
                                 <span class="input-group-text">Ton</span>
                             </div>
                         </div>
@@ -430,9 +430,11 @@
             backordersContainer.insertAdjacentHTML('beforeend', backorderHtml);
             
             // Add facturas if data exists
-            if (data && data.facturas && data.facturas.length > 0) {
-                data.facturas.forEach(factura => {
-                    addFactura(backorderIndex, factura);
+            if (data && data.invoices && data.invoices.length > 0) {
+                data.invoices.forEach(factura => {
+                    if(factura.id != 0){
+                        addFactura(backorderIndex, factura);
+                    }
                 });
             }
             
@@ -485,7 +487,7 @@
                     <div class="row">
                         <div class="col-md-6">
                             <label class="form-label">Dirección</label>
-                            <input type="text" class="form-control factura-direccion" value="${data ? data.direccion : ''}" placeholder="Ingrese la dirección">
+                            <input type="text" class="form-control factura-direccion" value="${data ? data.address : ''}" placeholder="Ingrese la dirección">
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Referencia</label>
@@ -503,12 +505,12 @@
                         <div class="col-md-4">
                             <label class="form-label">Factura</label>
                             <input type="file" class="form-control factura-file" accept=".pdf,.jpg,.jpeg,.png">
-                            ${data && data.facturaFileName ? `<small class="text-muted">Archivo actual: ${data.facturaFileName}</small>` : ''}
+                            ${data && data.attatchment ? `<small class="text-muted">Archivo actual: ${data.attatchment}</small>` : ''}
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Factura Firmada</label>
                             <input type="file" class="form-control factura-signed-file" accept=".pdf,.jpg,.jpeg,.png">
-                            ${data && data.facturaFirmadaFileName ? `<small class="text-muted">Archivo actual: ${data.facturaFirmadaFileName}</small>` : ''}
+                            ${data && data.signedAttatchment ? `<small class="text-muted">Archivo actual: ${data.signedAttatchment}</small>` : ''}
                         </div>
                     </div>
                 </div>
@@ -657,53 +659,29 @@
             
             const formData = {
                 total: parseFloat(document.getElementById('orderTotal').value),
-                backorders: []
+                statusId: parseInt(statusSelect.value),
+                backOrders: []
             };
-            
+
             // Collect backorders data
             const backorders = document.querySelectorAll('.backorder-card');
             backorders.forEach((backorder, backorderIndex) => {
-                const client = backorder.querySelector('.backorder-client').value;
-                const clientId = backorder.querySelector('.backorder-client-id').value;
+                const clientId = parseInt(backorder.querySelector('.backorder-client-id').value);
                 const commandNumber = backorder.querySelector('.backorder-command').value;
                 const totalWeight = parseFloat(backorder.querySelector('.backorder-weight').value) || 0;
-                
-                // Collect facturas for this comanda
-                const facturas = [];
-                const facturasContainer = backorder.querySelector('.facturas-container');
-                const facturaCards = facturasContainer.querySelectorAll('.factura-card');
-                
-                facturaCards.forEach(facturaCard => {
-                    const direccion = facturaCard.querySelector('.factura-direccion').value;
-                    const reference = facturaCard.querySelector('.factura-reference').value;
-                    const value = parseFloat(facturaCard.querySelector('.factura-value').value) || 0;
-                    const facturaFile = facturaCard.querySelector('.factura-file').files[0];
-                    const facturaSignedFile = facturaCard.querySelector('.factura-signed-file').files[0];
-                    
-                    if (direccion && reference && value > 0) {
-                        facturas.push({
-                            direccion,
-                            reference,
-                            value,
-                            facturaFile: facturaFile ? facturaFile.name : null,
-                            facturaSignedFile: facturaSignedFile ? facturaSignedFile.name : null
-                        });
-                    }
-                });
-                
-                if (client && commandNumber && totalWeight > 0) {
-                    formData.backorders.push({
-                        client,
-                        clientId,
-                        commandNumber,
-                        totalWeight,
-                        facturas
+
+                if (clientId && commandNumber && totalWeight > 0) {
+                    formData.backOrders.push({
+                        orderId: currentId,
+                        clientId: clientId,
+                        number: commandNumber,
+                        weight: totalWeight
                     });
                 }
             });
             
             // Validate
-            if (!statusSelect.value || formData.backorders.length === 0) {
+            if (!statusSelect.value || formData.backOrders.length === 0) {
                 alert('Por favor, complete todos los campos requeridos y agregue al menos una orden de entrega.');
                 return;
             }

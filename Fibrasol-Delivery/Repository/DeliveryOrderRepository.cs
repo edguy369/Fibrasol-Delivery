@@ -107,7 +107,7 @@ public class DeliveryOrderRepository : IDeliveryOrderRepository
         return transactionResult.Distinct().FirstOrDefault();
     }
 
-    public async Task<bool> UpdateAsync(int id, DeliveryOrderRequest request)
+    public async Task<bool> UpdateAsync(int id, DeliveryOrderCompleteRequest request)
     {
         const string query = "UPDATE DeliveryOrder SET StatusId = @pStatusId, Total = @pTotal " +
             "WHERE Id = @pId;";
@@ -115,7 +115,7 @@ public class DeliveryOrderRepository : IDeliveryOrderRepository
         var transactionResult = await conn.ExecuteAsync(query, new
         {
             pId = id,
-            pStatusId = 1,
+            pStatusId = request.StatusId,
             pTotal = request.Total
         });
         return transactionResult != 0;

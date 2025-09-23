@@ -63,11 +63,17 @@ public class DeliveryOrderController : Controller
 
     [HttpPut]
     [Route("delivery-orders/{id}")]
-    public async Task<IActionResult> UpdateAsync(int id, [FromBody] DeliveryOrderRequest request)
+    public async Task<IActionResult> UpdateAsync(int id, [FromBody] DeliveryOrderCompleteRequest request)
     {
         var transactionResult = await _unitOfWork.DeliveryOrders.UpdateAsync(id, request);
         if (!transactionResult)
             return BadRequest();
+
+        //AGREGAR COMMANDAS
+        if(request.BackOrders.Count != 0)
+            foreach (var backOrder in request.BackOrders)
+                _ = await _unitOfWork.BackOrders.CreateAsync(backOrder);
+
 
         return Ok();
     }
