@@ -166,19 +166,14 @@
                 {
                     data: 'status.name',
                     render: function(data, type, row) {
+                        console.log(data);
                         let badgeClass = '';
                         switch(data.toLowerCase()) {
-                            case 'pendiente':
+                            case 'ingresado':
                                 badgeClass = 'status-pending';
                                 break;
-                            case 'en progreso':
-                                badgeClass = 'status-in-progress';
-                                break;
-                            case 'entregado':
+                            case 'finalizado':
                                 badgeClass = 'status-delivered';
-                                break;
-                            case 'cancelado':
-                                badgeClass = 'status-cancelled';
                                 break;
                             default:
                                 badgeClass = 'status-pending';
