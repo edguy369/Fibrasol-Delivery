@@ -48,6 +48,7 @@ public class BackOrderRepository : IBackOrderRepository
         {
             pId = id,
             pNumber = request.Number,
+            pClientId = request.ClientId,
             pWeight = request.Weight
         });
         return transactionResult != 0;

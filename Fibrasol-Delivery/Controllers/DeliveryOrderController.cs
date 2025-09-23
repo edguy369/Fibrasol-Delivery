@@ -72,7 +72,17 @@ public class DeliveryOrderController : Controller
         //AGREGAR COMMANDAS
         if(request.BackOrders.Count != 0)
             foreach (var backOrder in request.BackOrders)
-                _ = await _unitOfWork.BackOrders.CreateAsync(backOrder);
+            {
+                if (backOrder.ObjectStatus == "new")
+                    _ = await _unitOfWork.BackOrders.CreateAsync(backOrder);
+
+                if (backOrder.ObjectStatus == "update")
+                    _ = await _unitOfWork.BackOrders.UpdateAsync(backOrder.Id, backOrder);
+
+                if (backOrder.ObjectStatus == "delete")
+                    _ = await _unitOfWork.BackOrders.DeleteAsync(backOrder.Id);
+            }
+                
 
 
         return Ok();

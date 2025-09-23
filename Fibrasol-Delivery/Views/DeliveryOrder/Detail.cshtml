@@ -243,6 +243,10 @@
         
         // Global variable to track current order ID
         window.currentOrderId = isNewOrder ? null : parseInt(orderId);
+
+        // Global arrays to track backorder changes
+        window.deletedBackorders = [];
+        window.originalBackorders = [];
         
         $(document).ready(function() {
             // Load both statuses and clients
@@ -384,7 +388,12 @@
             const backorderIndex = backordersContainer.children.length;
             
             const backorderHtml = `
-                <div class="backorder-card" data-index="${backorderIndex}">
+                <div class="backorder-card" data-index="${backorderIndex}"
+                     data-backorder-id="${data ? data.id || 0 : 0}"
+                     data-object-status="${data ? 'existing' : 'new'}"
+                     data-original-client-id="${data ? (data.client ? data.client.id : '') : ''}"
+                     data-original-number="${data ? data.number : ''}"
+                     data-original-weight="${data ? data.weight : ''}">
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <h6 class="mb-0">Comanda ${backorderIndex + 1}</h6>
                         <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeBackorder(${backorderIndex})">
@@ -395,19 +404,19 @@
                         <div class="col-md-4">
                             <label class="form-label">Cliente</label>
                             <div class="client-search-container">
-                                <input type="text" class="form-control backorder-client" value="${data ? (data.client ? data.client.name : '') : ''}" placeholder="Buscar cliente..." autocomplete="off" onkeyup="searchClients(this)" onfocus="searchClients(this)" onblur="hideClientDropdown(this)">
-                                <input type="hidden" class="backorder-client-id" value="${data ? (data.client ? data.client.id : '') : ''}">
+                                <input type="text" class="form-control backorder-client" value="${data ? (data.client ? data.client.name : '') : ''}" placeholder="Buscar cliente..." autocomplete="off" onkeyup="searchClients(this)" onfocus="searchClients(this)" onblur="hideClientDropdown(this)" onchange="checkBackorderChanges(${backorderIndex})">
+                                <input type="hidden" class="backorder-client-id" value="${data ? (data.client ? data.client.id : '') : ''}" onchange="checkBackorderChanges(${backorderIndex})">
                                 <div class="client-dropdown"></div>
                             </div>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">No. Commanda</label>
-                            <input type="text" class="form-control backorder-command" value="${data ? data.number : ''}" placeholder="Ingrese el número de commanda">
+                            <input type="text" class="form-control backorder-command" value="${data ? data.number : ''}" placeholder="Ingrese el número de commanda" onchange="checkBackorderChanges(${backorderIndex})">
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Peso Total Toneladas</label>
                             <div class="input-group">
-                                <input type="number" class="form-control backorder-weight" value="${data ? data.weight.toFixed(3) : ''}" step="0.001" min="0" placeholder="0.000">
+                                <input type="number" class="form-control backorder-weight" value="${data ? data.weight.toFixed(3) : ''}" step="0.001" min="0" placeholder="0.000" onchange="checkBackorderChanges(${backorderIndex})">
                                 <span class="input-group-text">Ton</span>
                             </div>
                         </div>
@@ -445,6 +454,25 @@
         function removeBackorder(index) {
             const backorderCard = document.querySelector(`[data-index="${index}"]`);
             if (backorderCard) {
+                const backorderId = backorderCard.getAttribute('data-backorder-id');
+                const objectStatus = backorderCard.getAttribute('data-object-status');
+
+                // If it's an existing backorder, add it to deleted list
+                if (objectStatus === 'existing' || objectStatus === 'update') {
+                    const clientId = backorderCard.querySelector('.backorder-client-id').value;
+                    const number = backorderCard.querySelector('.backorder-command').value;
+                    const weight = parseFloat(backorderCard.querySelector('.backorder-weight').value) || 0;
+
+                    window.deletedBackorders.push({
+                        id: parseInt(backorderId),
+                        orderId: window.currentOrderId,
+                        clientId: parseInt(clientId),
+                        number: number,
+                        weight: weight,
+                        objectStatus: 'delete'
+                    });
+                }
+
                 backorderCard.remove();
                 updateOrderTotal();
                 // Reindex remaining backorders
@@ -560,7 +588,41 @@
             
             document.getElementById('orderTotal').value = totalValue.toFixed(2);
         }
-        
+
+        function checkBackorderChanges(backorderIndex) {
+            const backorderCard = document.querySelector(`[data-index="${backorderIndex}"]`);
+            if (!backorderCard) return;
+
+            const currentStatus = backorderCard.getAttribute('data-object-status');
+
+            // Skip checking if it's already marked as new
+            if (currentStatus === 'new') return;
+
+            // Get current values
+            const currentClientId = backorderCard.querySelector('.backorder-client-id').value;
+            const currentNumber = backorderCard.querySelector('.backorder-command').value;
+            const currentWeight = parseFloat(backorderCard.querySelector('.backorder-weight').value) || 0;
+
+            // Get original values
+            const originalClientId = backorderCard.getAttribute('data-original-client-id');
+            const originalNumber = backorderCard.getAttribute('data-original-number');
+            const originalWeight = parseFloat(backorderCard.getAttribute('data-original-weight')) || 0;
+
+            // Check if any values have changed
+            const hasChanges = (
+                currentClientId !== originalClientId ||
+                currentNumber !== originalNumber ||
+                Math.abs(currentWeight - originalWeight) > 0.001 // Account for floating point precision
+            );
+
+            // Update status if there are changes
+            if (hasChanges && currentStatus === 'existing') {
+                backorderCard.setAttribute('data-object-status', 'update');
+            } else if (!hasChanges && currentStatus === 'update') {
+                backorderCard.setAttribute('data-object-status', 'existing');
+            }
+        }
+
         // Client search functionality
         let clientsData = [];
         let searchTimeout;
@@ -631,10 +693,17 @@
             const container = input.parentElement;
             const clientIdInput = container.querySelector('.backorder-client-id');
             const dropdown = container.querySelector('.client-dropdown');
-            
+
             input.value = client.name;
             clientIdInput.value = client.id;
             dropdown.style.display = 'none';
+
+            // Trigger change detection
+            const backorderCard = input.closest('.backorder-card');
+            if (backorderCard) {
+                const backorderIndex = parseInt(backorderCard.getAttribute('data-index'));
+                checkBackorderChanges(backorderIndex);
+            }
         }
         
         function hideClientDropdown(input) {
@@ -666,18 +735,27 @@
             // Collect backorders data
             const backorders = document.querySelectorAll('.backorder-card');
             backorders.forEach((backorder, backorderIndex) => {
+                const backorderId = parseInt(backorder.getAttribute('data-backorder-id')) || 0;
                 const clientId = parseInt(backorder.querySelector('.backorder-client-id').value);
                 const commandNumber = backorder.querySelector('.backorder-command').value;
                 const totalWeight = parseFloat(backorder.querySelector('.backorder-weight').value) || 0;
+                const objectStatus = backorder.getAttribute('data-object-status');
 
                 if (clientId && commandNumber && totalWeight > 0) {
                     formData.backOrders.push({
+                        id: backorderId,
                         orderId: currentId,
                         clientId: clientId,
                         number: commandNumber,
-                        weight: totalWeight
+                        weight: totalWeight,
+                        objectStatus: objectStatus
                     });
                 }
+            });
+
+            // Add deleted backorders to the list
+            window.deletedBackorders.forEach(deletedBackorder => {
+                formData.backOrders.push(deletedBackorder);
             });
             
             // Validate
