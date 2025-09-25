@@ -168,6 +168,21 @@
     .info-value {
         color: #6b7280;
     }
+
+    .document-container {
+        min-height: 38px;
+    }
+
+    .existing-document {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+
+    .existing-document .btn-sm {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.875rem;
+    }
 </style>
 
 <div class="page-header mt-4">
@@ -244,8 +259,9 @@
         // Global variable to track current order ID
         window.currentOrderId = isNewOrder ? null : parseInt(orderId);
 
-        // Global arrays to track backorder changes
+        // Global arrays to track backorder and invoice changes
         window.deletedBackorders = [];
+        window.deletedInvoices = [];
         window.originalBackorders = [];
         
         $(document).ready(function() {
@@ -440,7 +456,9 @@
             
             // Add facturas if data exists
             if (data && data.invoices && data.invoices.length > 0) {
+                console.log('Loading invoices for backorder:', backorderIndex, 'invoices:', data.invoices);
                 data.invoices.forEach(factura => {
+                    console.log('Processing invoice:', factura);
                     if(factura.id != 0){
                         addFactura(backorderIndex, factura);
                     }
@@ -463,13 +481,25 @@
                     const number = backorderCard.querySelector('.backorder-command').value;
                     const weight = parseFloat(backorderCard.querySelector('.backorder-weight').value) || 0;
 
+                    // Collect all invoice data before deletion to mark them as deleted
+                    const invoices = [];
+                    const facturaCards = backorderCard.querySelectorAll('.factura-card');
+                    facturaCards.forEach((facturaCard, facturaIndex) => {
+                        const facturaData = getFacturaData(index, facturaIndex);
+                        if (facturaData) {
+                            facturaData.objectStatus = 'delete';
+                            invoices.push(facturaData);
+                        }
+                    });
+
                     window.deletedBackorders.push({
                         id: parseInt(backorderId),
                         orderId: window.currentOrderId,
                         clientId: parseInt(clientId),
                         number: number,
                         weight: weight,
-                        objectStatus: 'delete'
+                        objectStatus: 'delete',
+                        invoices: invoices
                     });
                 }
 
@@ -501,9 +531,13 @@
         function addFactura(comandaIndex, data = null) {
             const facturasContainer = document.querySelector(`[data-comanda="${comandaIndex}"]`);
             const facturaIndex = facturasContainer.children.length;
-            
+
             const facturaHtml = `
-                <div class="factura-card" data-factura-index="${facturaIndex}">
+                <div class="factura-card" data-factura-index="${facturaIndex}"
+                     data-factura-id="${data ? data.id || 0 : 0}"
+                     data-factura-status="${data ? 'existing' : 'new'}"
+                     data-original-attachment="${data ? (data.attatchment || '') : ''}"
+                     data-original-signed-attachment="${data ? (data.signedAttatchment || '') : ''}">
                     <div class="factura-header">
                         <div class="d-flex justify-content-between align-items-center">
                             <small class="fw-bold">Factura ${facturaIndex + 1}</small>
@@ -515,11 +549,11 @@
                     <div class="row">
                         <div class="col-md-6">
                             <label class="form-label">Dirección</label>
-                            <input type="text" class="form-control factura-direccion" value="${data ? data.address : ''}" placeholder="Ingrese la dirección">
+                            <input type="text" class="form-control factura-direccion" value="${data ? data.address : ''}" placeholder="Ingrese la dirección" onchange="checkFacturaChanges(${comandaIndex}, ${facturaIndex})">
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Referencia</label>
-                            <input type="text" class="form-control factura-reference" value="${data ? data.reference : ''}" placeholder="Ingrese la referencia">
+                            <input type="text" class="form-control factura-reference" value="${data ? data.reference : ''}" placeholder="Ingrese la referencia" onchange="checkFacturaChanges(${comandaIndex}, ${facturaIndex})">
                         </div>
                     </div>
                     <div class="row mt-2">
@@ -527,25 +561,51 @@
                             <label class="form-label">Valor</label>
                             <div class="input-group">
                                 <span class="input-group-text">Q</span>
-                                <input type="number" class="form-control factura-value" value="${data ? data.value.toFixed(2) : ''}" step="0.01" min="0" placeholder="0.00" onchange="updateOrderTotal()" oninput="updateOrderTotal()">
+                                <input type="number" class="form-control factura-value" value="${data ? data.value.toFixed(2) : ''}" step="0.01" min="0" placeholder="0.00" onchange="updateOrderTotal(); checkFacturaChanges(${comandaIndex}, ${facturaIndex})" oninput="updateOrderTotal()">
                             </div>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Factura</label>
-                            <input type="file" class="form-control factura-file" accept=".pdf,.jpg,.jpeg,.png">
-                            ${data && data.attatchment ? `<small class="text-muted">Archivo actual: ${data.attatchment}</small>` : ''}
+                            <div class="document-container">
+                                ${data && data.attatchment ?
+                                    `<div class="existing-document">
+                                        <a href="${data.attatchment}" target="_blank" class="btn btn-sm btn-outline-info me-2">
+                                            <i class="bi bi-file-earmark-pdf me-1"></i>Ver Documento
+                                        </a>
+                                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeDocument(${comandaIndex}, ${facturaIndex}, 'attachment')">
+                                            <i class="bi bi-x"></i>
+                                        </button>
+                                    </div>` :
+                                    `<input type="file" class="form-control factura-file" accept=".pdf,.jpg,.jpeg,.png" onchange="handleFileChange(this, ${comandaIndex}, ${facturaIndex}, 'attachment')">`
+                                }
+                                <input type="hidden" class="factura-attachment-base64" value="${data && data.attatchment ? data.attatchment : ''}">
+                                <input type="hidden" class="factura-attachment-changed" value="false">
+                            </div>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Factura Firmada</label>
-                            <input type="file" class="form-control factura-signed-file" accept=".pdf,.jpg,.jpeg,.png">
-                            ${data && data.signedAttatchment ? `<small class="text-muted">Archivo actual: ${data.signedAttatchment}</small>` : ''}
+                            <div class="document-container">
+                                ${data && data.signedAttatchment ?
+                                    `<div class="existing-document">
+                                        <a href="${data.signedAttatchment}" target="_blank" class="btn btn-sm btn-outline-info me-2">
+                                            <i class="bi bi-file-earmark-pdf me-1"></i>Ver Documento
+                                        </a>
+                                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeDocument(${comandaIndex}, ${facturaIndex}, 'signed')">
+                                            <i class="bi bi-x"></i>
+                                        </button>
+                                    </div>` :
+                                    `<input type="file" class="form-control factura-signed-file" accept=".pdf,.jpg,.jpeg,.png" onchange="handleFileChange(this, ${comandaIndex}, ${facturaIndex}, 'signed')">`
+                                }
+                                <input type="hidden" class="factura-signed-attachment-base64" value="${data && data.signedAttatchment ? data.signedAttatchment : ''}">
+                                <input type="hidden" class="factura-signed-attachment-changed" value="false">
+                            </div>
                         </div>
                     </div>
                 </div>
             `;
-            
+
             facturasContainer.insertAdjacentHTML('beforeend', facturaHtml);
-            
+
             // Update total after adding factura
             updateOrderTotal();
         }
@@ -553,9 +613,28 @@
         function removeFactura(comandaIndex, facturaIndex) {
             const facturaCard = document.querySelector(`[data-comanda="${comandaIndex}"] [data-factura-index="${facturaIndex}"]`);
             if (facturaCard) {
+                const facturaId = parseInt(facturaCard.getAttribute('data-factura-id')) || 0;
+                const facturaStatus = facturaCard.getAttribute('data-factura-status');
+
+                // If it's an existing invoice, add it to deleted list
+                if ((facturaStatus === 'existing' || facturaStatus === 'update') && facturaId > 0) {
+                    const facturaData = getFacturaData(comandaIndex, facturaIndex);
+                    if (facturaData) {
+                        // Get the backorder ID from the parent backorder card
+                        const backorderCard = document.querySelector(`[data-index="${comandaIndex}"]`);
+                        const backorderId = parseInt(backorderCard.getAttribute('data-backorder-id')) || 0;
+
+                        facturaData.objectStatus = 'delete';
+                        facturaData.backorderId = backorderId;
+                        window.deletedInvoices.push(facturaData);
+                        console.log('Added invoice to deleted list:', facturaData);
+                        console.log('Backorder ID for deleted invoice:', backorderId);
+                    }
+                }
+
                 facturaCard.remove();
                 reindexFacturas(comandaIndex);
-                
+
                 // Update total after removing factura
                 updateOrderTotal();
             }
@@ -576,7 +655,7 @@
         function updateOrderTotal() {
             let totalValue = 0;
             const backorders = document.querySelectorAll('.backorder-card');
-            
+
             backorders.forEach(backorder => {
                 // Get all factura values within this comanda
                 const facturaValues = backorder.querySelectorAll('.factura-value');
@@ -585,8 +664,138 @@
                     totalValue += value;
                 });
             });
-            
+
             document.getElementById('orderTotal').value = totalValue.toFixed(2);
+        }
+
+        function handleFileChange(fileInput, comandaIndex, facturaIndex, type) {
+            const file = fileInput.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const base64DataUrl = e.target.result; // Keep the full data URL format: data:image/png;base64,iVBORw0KG...
+
+                const facturaCard = document.querySelector(`[data-comanda="${comandaIndex}"] [data-factura-index="${facturaIndex}"]`);
+                if (facturaCard) {
+                    const documentContainer = type === 'attachment' ?
+                        facturaCard.querySelector('.col-md-4:nth-child(2) .document-container') :
+                        facturaCard.querySelector('.col-md-4:nth-child(3) .document-container');
+
+                    if (type === 'attachment') {
+                        facturaCard.querySelector('.factura-attachment-base64').value = base64DataUrl;
+                        facturaCard.querySelector('.factura-attachment-changed').value = 'true';
+                    } else if (type === 'signed') {
+                        facturaCard.querySelector('.factura-signed-attachment-base64').value = base64DataUrl;
+                        facturaCard.querySelector('.factura-signed-attachment-changed').value = 'true';
+                    }
+
+                    // Replace file input with document link
+                    const existingDocumentHtml = `
+                        <div class="existing-document">
+                            <a href="${base64DataUrl}" target="_blank" class="btn btn-sm btn-outline-info me-2">
+                                <i class="bi bi-file-earmark-pdf me-1"></i>Ver Documento
+                            </a>
+                            <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeDocument(${comandaIndex}, ${facturaIndex}, '${type}')">
+                                <i class="bi bi-x"></i>
+                            </button>
+                        </div>
+                    `;
+
+                    // Remove the file input and replace with document link
+                    const fileInputElement = documentContainer.querySelector('input[type="file"]');
+                    if (fileInputElement) {
+                        fileInputElement.remove();
+                        documentContainer.insertAdjacentHTML('afterbegin', existingDocumentHtml);
+                    }
+
+                    checkFacturaChanges(comandaIndex, facturaIndex);
+                }
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function removeDocument(comandaIndex, facturaIndex, type) {
+            const facturaCard = document.querySelector(`[data-comanda="${comandaIndex}"] [data-factura-index="${facturaIndex}"]`);
+            if (!facturaCard) return;
+
+            const documentContainer = type === 'attachment' ?
+                facturaCard.querySelector('.col-md-4:nth-child(2) .document-container') :
+                facturaCard.querySelector('.col-md-4:nth-child(3) .document-container');
+
+            // Clear the base64 data and set as changed
+            if (type === 'attachment') {
+                facturaCard.querySelector('.factura-attachment-base64').value = '';
+                facturaCard.querySelector('.factura-attachment-changed').value = 'true';
+            } else if (type === 'signed') {
+                facturaCard.querySelector('.factura-signed-attachment-base64').value = '';
+                facturaCard.querySelector('.factura-signed-attachment-changed').value = 'true';
+            }
+
+            // Remove existing document display and show file input
+            const existingDocument = documentContainer.querySelector('.existing-document');
+            if (existingDocument) {
+                existingDocument.remove();
+            }
+
+            // Add file input
+            const fileInputClass = type === 'attachment' ? 'factura-file' : 'factura-signed-file';
+            const fileInputHtml = `<input type="file" class="form-control ${fileInputClass}" accept=".pdf,.jpg,.jpeg,.png" onchange="handleFileChange(this, ${comandaIndex}, ${facturaIndex}, '${type}')">`;
+            documentContainer.insertAdjacentHTML('afterbegin', fileInputHtml);
+
+            checkFacturaChanges(comandaIndex, facturaIndex);
+        }
+
+        function checkFacturaChanges(comandaIndex, facturaIndex) {
+            const facturaCard = document.querySelector(`[data-comanda="${comandaIndex}"] [data-factura-index="${facturaIndex}"]`);
+            if (!facturaCard) return;
+
+            const currentStatus = facturaCard.getAttribute('data-factura-status');
+            if (currentStatus === 'new') return; // Skip checking for new items
+
+            // Get current values
+            const currentAddress = facturaCard.querySelector('.factura-direccion').value;
+            const currentReference = facturaCard.querySelector('.factura-reference').value;
+            const currentValue = parseFloat(facturaCard.querySelector('.factura-value').value) || 0;
+            const attachmentChanged = facturaCard.querySelector('.factura-attachment-changed').value === 'true';
+            const signedAttachmentChanged = facturaCard.querySelector('.factura-signed-attachment-changed').value === 'true';
+
+            // For existing items, check if any changes were made
+            const hasChanges = attachmentChanged || signedAttachmentChanged;
+
+            if (hasChanges && currentStatus === 'existing') {
+                facturaCard.setAttribute('data-factura-status', 'update');
+            } else if (!hasChanges && currentStatus === 'update') {
+                facturaCard.setAttribute('data-factura-status', 'existing');
+            }
+        }
+
+        function getFacturaData(comandaIndex, facturaIndex) {
+            const facturaCard = document.querySelector(`[data-comanda="${comandaIndex}"] [data-factura-index="${facturaIndex}"]`);
+            if (!facturaCard) return null;
+
+            const facturaId = parseInt(facturaCard.getAttribute('data-factura-id')) || 0;
+            const address = facturaCard.querySelector('.factura-direccion').value;
+            const reference = facturaCard.querySelector('.factura-reference').value;
+            const value = parseFloat(facturaCard.querySelector('.factura-value').value) || 0;
+            const attachment = facturaCard.querySelector('.factura-attachment-base64').value;
+            const signedAttachment = facturaCard.querySelector('.factura-signed-attachment-base64').value;
+            const attachmentChanged = facturaCard.querySelector('.factura-attachment-changed').value === 'true';
+            const signedAttachmentChanged = facturaCard.querySelector('.factura-signed-attachment-changed').value === 'true';
+            const objectStatus = facturaCard.getAttribute('data-factura-status');
+
+            return {
+                id: facturaId,
+                backorderId: 0, // Will be set when processing backorder
+                address: address,
+                reference: reference,
+                value: value,
+                attatchment: attachment,
+                signedAttatchment: signedAttachment,
+                objectStatus: objectStatus,
+                attatchmentChanged: attachmentChanged,
+                signedAttatchmentChanged: signedAttachmentChanged
+            };
         }
 
         function checkBackorderChanges(backorderIndex) {
@@ -742,13 +951,35 @@
                 const objectStatus = backorder.getAttribute('data-object-status');
 
                 if (clientId && commandNumber && totalWeight > 0) {
+                    // Collect invoices for this backorder
+                    const invoices = [];
+                    const facturaCards = backorder.querySelectorAll('.factura-card');
+                    facturaCards.forEach((facturaCard, facturaIndex) => {
+                        const facturaData = getFacturaData(backorderIndex, facturaIndex);
+                        if (facturaData) {
+                            facturaData.backorderId = backorderId;
+                            invoices.push(facturaData);
+                        }
+                    });
+
+                    // Add deleted invoices that belong to this backorder
+                    console.log('Processing backorder ID:', backorderId, 'Deleted invoices:', window.deletedInvoices);
+                    window.deletedInvoices.forEach(deletedInvoice => {
+                        console.log('Checking deleted invoice backorderId:', deletedInvoice.backorderId, 'against current backorderId:', backorderId);
+                        if (deletedInvoice.backorderId === backorderId) {
+                            console.log('Adding deleted invoice to backorder:', deletedInvoice);
+                            invoices.push(deletedInvoice);
+                        }
+                    });
+
                     formData.backOrders.push({
                         id: backorderId,
                         orderId: currentId,
                         clientId: clientId,
                         number: commandNumber,
                         weight: totalWeight,
-                        objectStatus: objectStatus
+                        objectStatus: objectStatus,
+                        invoices: invoices
                     });
                 }
             });
@@ -770,6 +1001,9 @@
             saveButton.disabled = true;
             saveButton.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Guardando...';
             
+            // Log the final data being sent to backend
+            console.log('Final form data being sent to backend:', JSON.stringify(formData, null, 2));
+
             // Always use UpdateAsync method
             $.ajax({
                 url: `/delivery-orders/${currentId}`,

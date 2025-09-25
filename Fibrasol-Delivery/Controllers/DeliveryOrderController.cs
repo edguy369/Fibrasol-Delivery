@@ -77,11 +77,39 @@ public class DeliveryOrderController : Controller
             foreach (var backOrder in request.BackOrders)
             {
                 if (backOrder.ObjectStatus == "new")
-                {
                     _ = await _unitOfWork.BackOrders.CreateAsync(backOrder);
-                    foreach (var invoice in backOrder.Invoices)
+                    
+
+                if (backOrder.ObjectStatus == "update")
+                    _ = await _unitOfWork.BackOrders.UpdateAsync(backOrder.Id, backOrder);
+
+                if (backOrder.ObjectStatus == "delete")
+                    _ = await _unitOfWork.BackOrders.DeleteAsync(backOrder.Id);
+
+                foreach (var invoice in backOrder.Invoices)
+                {
+                    if (invoice.ObjectStatus == "new")
                     {
-                        if (invoice.ObjectStatus == "new")
+                        if (!String.IsNullOrEmpty(invoice.Attatchment))
+                        {
+                            var uploadImageResult = await _doSpaces.UploadFileAsync(invoice.Attatchment, "facturas");
+                            if (uploadImageResult.Success)
+                                invoice.Attatchment = uploadImageResult.Path;
+                        }
+
+                        if (!String.IsNullOrEmpty(invoice.SignedAttatchment))
+                        {
+                            var uploadImageResult = await _doSpaces.UploadFileAsync(invoice.SignedAttatchment, "facturas-firmadas");
+                            if (uploadImageResult.Success)
+                                invoice.SignedAttatchment = uploadImageResult.Path;
+                        }
+
+                        _ = await _unitOfWork.Invoices.CreateAsync(invoice);
+                    }
+
+                    if (invoice.ObjectStatus == "update")
+                    {
+                        if (invoice.AttatchmentChanged)
                         {
                             if (!String.IsNullOrEmpty(invoice.Attatchment))
                             {
@@ -89,66 +117,31 @@ public class DeliveryOrderController : Controller
                                 if (uploadImageResult.Success)
                                     invoice.Attatchment = uploadImageResult.Path;
                             }
+                        }
 
+                        if (invoice.signedAttatchmentChanged)
+                        {
                             if (!String.IsNullOrEmpty(invoice.SignedAttatchment))
                             {
                                 var uploadImageResult = await _doSpaces.UploadFileAsync(invoice.SignedAttatchment, "facturas-firmadas");
                                 if (uploadImageResult.Success)
                                     invoice.SignedAttatchment = uploadImageResult.Path;
                             }
-
-                            _ = await _unitOfWork.Invoices.CreateAsync(invoice);
                         }
-                    }
-                }
-                    
 
-                if (backOrder.ObjectStatus == "update")
-                {
-                    _ = await _unitOfWork.BackOrders.UpdateAsync(backOrder.Id, backOrder);
-                    foreach (var invoice in backOrder.Invoices)
+                        _ = await _unitOfWork.Invoices.UpdateAsync(invoice.Id, invoice);
+                    }
+
+                    if (invoice.ObjectStatus == "delete")
                     {
-                        if (invoice.ObjectStatus == "update")
-                        {
-                            if (invoice.AttatchmentChanged)
-                            {
-                                if (!String.IsNullOrEmpty(invoice.Attatchment))
-                                {
-                                    var uploadImageResult = await _doSpaces.UploadFileAsync(invoice.Attatchment, "facturas");
-                                    if (uploadImageResult.Success)
-                                        invoice.Attatchment = uploadImageResult.Path;
-                                }
-                            }
+                        _ = await _unitOfWork.Invoices.DeleteAsync(backOrder.Id);
+                        if (!String.IsNullOrEmpty(invoice.Attatchment))
+                            await _doSpaces.DeleteFileAsync(invoice.Attatchment);
 
-                            if (invoice.signedAttatchmentChanged)
-                            {
-                                if (!String.IsNullOrEmpty(invoice.SignedAttatchment))
-                                {
-                                    var uploadImageResult = await _doSpaces.UploadFileAsync(invoice.SignedAttatchment, "facturas-firmadas");
-                                    if (uploadImageResult.Success)
-                                        invoice.SignedAttatchment = uploadImageResult.Path;
-                                }
-                            }
-
-                            _ = await _unitOfWork.Invoices.UpdateAsync(invoice.Id, invoice);
-                        }
-
-                        if (invoice.ObjectStatus == "delete")
-                        {
-                            _ = await _unitOfWork.Invoices.DeleteAsync(backOrder.Id);
-                            if (!String.IsNullOrEmpty(invoice.Attatchment))
-                                await _doSpaces.DeleteFileAsync(invoice.Attatchment);
-
-                            if (!String.IsNullOrEmpty(invoice.SignedAttatchment))
-                                await _doSpaces.DeleteFileAsync(invoice.SignedAttatchment);
-                        }
-                            
+                        if (!String.IsNullOrEmpty(invoice.SignedAttatchment))
+                            await _doSpaces.DeleteFileAsync(invoice.SignedAttatchment);
                     }
                 }
-                    
-
-                if (backOrder.ObjectStatus == "delete")
-                    _ = await _unitOfWork.BackOrders.DeleteAsync(backOrder.Id);
             }
                 
 

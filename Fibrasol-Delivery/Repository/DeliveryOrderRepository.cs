@@ -59,7 +59,7 @@ public class DeliveryOrderRepository : IDeliveryOrderRepository
 
     public async Task<DeliveryOrderModel> GetByIdAsync(int id)
     {
-        const string query = "SELECT a.Id, a.Created, a.Total, a.StatusId, b.Id, b.Name, c.Id AS BackorderId, c.Id, c.Number, c.Weight, d.Id AS ClientId, d.Id, d.Name, e.Id AS InvoiceId, e.Address, e.Reference, e.Value, e.Attatchment, e.SignedAttatchment From DeliveryOrder a INNER JOIN DeliveryOrderStatus b ON a.StatusId = b.Id LEFT JOIN BackOrder c ON a.Id = c.DeliveryOrderId LEFT JOIN Clients d ON d.Id = c.ClientId LEFT JOIN Invoice e ON e.BackorderId = c.Id WHERE a.Id = @pId;";
+        const string query = "SELECT a.Id, a.Created, a.Total, a.StatusId, b.Id, b.Name, c.Id AS BackorderId, c.Id, c.Number, c.Weight, d.Id AS ClientId, d.Id, d.Name, e.Id AS InvoiceId, e.Id, e.Address, e.Reference, e.Value, e.Attatchment, e.SignedAttatchment From DeliveryOrder a INNER JOIN DeliveryOrderStatus b ON a.StatusId = b.Id LEFT JOIN BackOrder c ON a.Id = c.DeliveryOrderId LEFT JOIN Clients d ON d.Id = c.ClientId LEFT JOIN Invoice e ON e.BackorderId = c.Id WHERE a.Id = @pId;";
         using var conn = new MySqlConnection(_connectionString);
         var deliveryDisctionary = new Dictionary<int, DeliveryOrderModel>();
         var backOrderDictionary = new Dictionary<int, BackOrderModel>();
