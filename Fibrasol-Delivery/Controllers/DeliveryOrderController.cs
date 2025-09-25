@@ -78,6 +78,18 @@ public class DeliveryOrderController : Controller
         if (!transactionResult)
             return BadRequest();
 
+        //AGREGAR DRIVERS
+        if (request.Riders.Count != 0)
+        {
+            foreach (var riders in request.Riders)
+            {
+                if(riders.ObjectState == "new")
+                    await _unitOfWork.DeliveryOrderDrivers.AssignAsync(riders.RiderId, id);
+                else if (riders.ObjectState == "delete")
+                    await _unitOfWork.DeliveryOrderDrivers.DeassignAsync(riders.RiderId, id);
+            }
+        }
+
         //AGREGAR COMMANDAS
         if(request.BackOrders.Count != 0)
             foreach (var backOrder in request.BackOrders)

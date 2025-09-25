@@ -183,6 +183,34 @@
         padding: 0.25rem 0.5rem;
         font-size: 0.875rem;
     }
+
+    #orderRiders {
+        border: 2px solid #e5e7eb;
+        border-radius: 8px;
+        min-height: 120px;
+        font-size: 14px;
+    }
+
+    #orderRiders:focus {
+        border-color: #4f46e5;
+        box-shadow: 0 0 0 0.2rem rgba(79, 70, 229, 0.25);
+        outline: none;
+    }
+
+    #orderRiders option {
+        padding: 8px 12px;
+        margin-bottom: 2px;
+        border-radius: 4px;
+    }
+
+    #orderRiders option:selected {
+        background-color: #4f46e5 !important;
+        color: white !important;
+    }
+
+    #orderRiders option:hover {
+        background-color: #f3f4f6;
+    }
 </style>
 
 <div class="page-header mt-4">
@@ -226,6 +254,15 @@
                     </div>
                 </div>
             </div>
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <label for="orderRiders" class="form-label">Mensajeros Asignados</label>
+                    <select class="form-select" id="orderRiders" multiple size="4">
+                        <option value="">Cargando mensajeros...</option>
+                    </select>
+                    <small class="form-text text-muted">Mantenga presionado Ctrl (Cmd en Mac) para seleccionar múltiples mensajeros</small>
+                </div>
+            </div>
         </div>
         
         <div class="mb-4">
@@ -263,10 +300,14 @@
         window.deletedBackorders = [];
         window.deletedInvoices = [];
         window.originalBackorders = [];
+
+        // Global arrays to track rider selections and changes
+        window.originalRiders = []; // Original rider IDs when loading existing order
+        window.currentRiders = [];  // Currently selected rider IDs
         
         $(document).ready(function() {
-            // Load both statuses and clients
-            Promise.all([loadDeliveryStatuses(), loadClients()]).then(() => {
+            // Load statuses, clients, and riders
+            Promise.all([loadDeliveryStatuses(), loadClients(), loadRiders()]).then(() => {
                 if (isNewOrder) {
                     setupNewOrder();
                 } else {
@@ -377,7 +418,28 @@
                         
                         // Set the global orderId for save operations
                         window.currentOrderId = orderData.id;
-                        
+
+                        // Load riders if they exist (future implementation)
+                        if (orderData.riders && orderData.riders.length > 0) {
+                            window.originalRiders = orderData.riders.map(r => parseInt(r.id || r.riderId));
+                            window.currentRiders = [...window.originalRiders];
+
+                            // Set selected options in the dropdown
+                            setTimeout(() => {
+                                const ridersSelect = document.getElementById('orderRiders');
+                                window.originalRiders.forEach(riderId => {
+                                    const option = ridersSelect.querySelector(`option[value="${riderId}"]`);
+                                    if (option) {
+                                        option.selected = true;
+                                    }
+                                });
+                            }, 100);
+                        } else {
+                            // No riders assigned initially
+                            window.originalRiders = [];
+                            window.currentRiders = [];
+                        }
+
                         // Load backorders if they exist
                         if (orderData.backorders && orderData.backorders.length > 0) {
                             orderData.backorders.forEach(backorder => {
@@ -850,6 +912,88 @@
                 }
             });
         }
+
+        // Load all riders on page load
+        function loadRiders() {
+            return $.ajax({
+                url: '/riders',
+                type: 'GET',
+                success: function(riders) {
+                    console.log('Riders loaded:', riders);
+                    const ridersSelect = $('#orderRiders');
+                    ridersSelect.empty();
+
+                    // Add rider options from database
+                    riders.forEach(function(rider) {
+                        ridersSelect.append(`<option value="${rider.id}">${rider.name}</option>`);
+                    });
+
+                    console.log('Rider options added to dropdown');
+
+                    // Add change event listener to track current selections
+                    ridersSelect.off('change.riderTracking').on('change.riderTracking', function() {
+                        updateCurrentRiders();
+                    });
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error loading riders:', error);
+                    console.log('XHR Response:', xhr.responseText);
+
+                    // Clear dropdown on error
+                    const ridersSelect = $('#orderRiders');
+                    ridersSelect.empty();
+                    ridersSelect.append('<option value="">Error cargando mensajeros</option>');
+
+                    // Show error message to user
+                    showErrorMessage('Error al cargar los mensajeros.');
+                }
+            });
+        }
+
+        // Update current riders array when selection changes
+        function updateCurrentRiders() {
+            const ridersSelect = document.getElementById('orderRiders');
+            window.currentRiders = Array.from(ridersSelect.selectedOptions).map(option => parseInt(option.value));
+            console.log('Current riders updated:', window.currentRiders);
+        }
+
+        // Generate riders data with object states for the save request
+        function getRidersData() {
+            const ridersData = [];
+
+            // Find riders to add (in current but not in original)
+            window.currentRiders.forEach(riderId => {
+                if (!window.originalRiders.includes(riderId)) {
+                    ridersData.push({
+                        riderId: riderId,
+                        objectState: 'new'
+                    });
+                }
+            });
+
+            // Find riders to keep (in both current and original) - these stay as 'existing'
+            window.originalRiders.forEach(riderId => {
+                if (window.currentRiders.includes(riderId)) {
+                    ridersData.push({
+                        riderId: riderId,
+                        objectState: 'existing'
+                    });
+                }
+            });
+
+            // Find riders to remove (in original but not in current)
+            window.originalRiders.forEach(riderId => {
+                if (!window.currentRiders.includes(riderId)) {
+                    ridersData.push({
+                        riderId: riderId,
+                        objectState: 'delete'
+                    });
+                }
+            });
+
+            console.log('Riders data generated:', ridersData);
+            return ridersData;
+        }
         
         function searchClients(input) {
             clearTimeout(searchTimeout);
@@ -938,6 +1082,7 @@
             const formData = {
                 total: parseFloat(document.getElementById('orderTotal').value),
                 statusId: parseInt(statusSelect.value),
+                riders: getRidersData(),
                 backOrders: []
             };
 

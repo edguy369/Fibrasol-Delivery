@@ -2,7 +2,6 @@
 using Fibrasol_Delivery.Config;
 using Fibrasol_Delivery.Repository.Abstract;
 using MySql.Data.MySqlClient;
-using Org.BouncyCastle.Asn1.Ocsp;
 
 namespace Fibrasol_Delivery.Repository;
 
