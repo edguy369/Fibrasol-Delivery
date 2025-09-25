@@ -150,8 +150,8 @@
 
     <div class="signatures">
         <div class="signature-box">
-            <div style="text-align: left;">
-                <strong>DUFAS</strong> &nbsp;&nbsp;&nbsp; Y &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>XAVI</strong>
+            <div style="text-align: left;" id="pilotsNames">
+                <strong>SIN ASIGNAR</strong>
             </div>
             <div class="signature-line"></div>
             <div><strong>FIRMA Y NOMBRE DEL PILOTO</strong></div>
@@ -207,6 +207,36 @@
 
             // Set total
             document.getElementById('totalAmount').textContent = `Q${orderData.total.toLocaleString('es-GT', { minimumFractionDigits: 2 })}`;
+
+            // Populate pilots names
+            populatePilots(orderData);
+        }
+
+        function populatePilots(orderData) {
+            const pilotsContainer = document.getElementById('pilotsNames');
+
+            if (orderData.riders && orderData.riders.length > 0) {
+                // Get all rider names
+                const riderNames = orderData.riders.map(rider => rider.name.toUpperCase());
+
+                // Format names based on count
+                let formattedNames = '';
+                if (riderNames.length === 1) {
+                    formattedNames = `<strong>${riderNames[0]}</strong>`;
+                } else if (riderNames.length === 2) {
+                    formattedNames = `<strong>${riderNames[0]}</strong> &nbsp;&nbsp;&nbsp; Y &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>${riderNames[1]}</strong>`;
+                } else {
+                    // For more than 2 riders, show all with proper spacing
+                    const lastRider = riderNames.pop();
+                    const otherRiders = riderNames.map(name => `<strong>${name}</strong>`).join(' &nbsp;&nbsp;&nbsp; ');
+                    formattedNames = `${otherRiders} &nbsp;&nbsp;&nbsp; Y &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>${lastRider}</strong>`;
+                }
+
+                pilotsContainer.innerHTML = formattedNames;
+            } else {
+                // No riders assigned
+                pilotsContainer.innerHTML = '<strong>SIN ASIGNAR</strong>';
+            }
         }
 
         function populateTable(orderData) {

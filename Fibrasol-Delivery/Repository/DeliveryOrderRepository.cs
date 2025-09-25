@@ -79,7 +79,7 @@ public class DeliveryOrderRepository : IDeliveryOrderRepository
 
             if(rider != null)
             {
-                if (!riderDisctionary.TryGetValue(deliveryOrder.Id, out RiderModel? myRider))
+                if (!riderDisctionary.TryGetValue(rider.Id, out RiderModel? myRider))
                 {
                     myRider = rider;
                     myOrder.Riders.Add(myRider);
@@ -115,7 +115,7 @@ public class DeliveryOrderRepository : IDeliveryOrderRepository
         {
             pId = id
         },
-        splitOn: "StatusId,BackorderId,ClientId,InvoiceId");
+        splitOn: "StatusId,RiderAssignationId,BackorderId,ClientId,InvoiceId");
         return transactionResult.Distinct().FirstOrDefault();
     }
 

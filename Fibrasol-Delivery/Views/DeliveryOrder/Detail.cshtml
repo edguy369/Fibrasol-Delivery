@@ -261,6 +261,10 @@
                         <option value="">Cargando mensajeros...</option>
                     </select>
                     <small class="form-text text-muted">Mantenga presionado Ctrl (Cmd en Mac) para seleccionar múltiples mensajeros</small>
+                    <div id="ridersSelectedCount" class="badge bg-primary mt-1" style="display: none;">
+                        <i class="bi bi-people-fill me-1"></i>
+                        <span id="ridersCount">0</span> mensajero(s) seleccionado(s)
+                    </div>
                 </div>
             </div>
         </div>
@@ -358,10 +362,14 @@
             document.getElementById('pageTitle').textContent = 'Nueva Constancia de Entrega';
             document.getElementById('orderId').value = 'Nuevo';
             document.getElementById('orderTotal').value = '0.00';
-            
+
+            // Initialize riders arrays for new order
+            window.originalRiders = [];
+            window.currentRiders = [];
+
             // Create new delivery order to get ID
             createNewDeliveryOrder();
-            
+
             addBackorder(); // Add one empty backorder by default
         }
         
@@ -396,6 +404,7 @@
                 type: 'GET',
                 success: function(orderData) {
                     console.log('Order data loaded:', orderData);
+                    console.log('Riders in order data:', orderData.riders);
                     if (orderData) {
                         document.getElementById('pageTitle').textContent = 'Editar Constancia de Entrega #' + id;
                         document.getElementById('orderId').value = orderData.id;
@@ -419,23 +428,31 @@
                         // Set the global orderId for save operations
                         window.currentOrderId = orderData.id;
 
-                        // Load riders if they exist (future implementation)
+                        // Load riders if they exist
                         if (orderData.riders && orderData.riders.length > 0) {
-                            window.originalRiders = orderData.riders.map(r => parseInt(r.id || r.riderId));
+                            console.log('Loading riders from order data:', orderData.riders);
+                            window.originalRiders = orderData.riders.map(rider => parseInt(rider.id));
                             window.currentRiders = [...window.originalRiders];
 
-                            // Set selected options in the dropdown
+                            // Set selected options in the dropdown after riders are loaded
                             setTimeout(() => {
                                 const ridersSelect = document.getElementById('orderRiders');
-                                window.originalRiders.forEach(riderId => {
-                                    const option = ridersSelect.querySelector(`option[value="${riderId}"]`);
-                                    if (option) {
-                                        option.selected = true;
-                                    }
-                                });
-                            }, 100);
+                                if (ridersSelect && ridersSelect.options.length > 1) {
+                                    window.originalRiders.forEach(riderId => {
+                                        const option = ridersSelect.querySelector(`option[value="${riderId}"]`);
+                                        if (option) {
+                                            option.selected = true;
+                                            console.log(`Selected rider: ${option.text} (ID: ${riderId})`);
+                                        }
+                                    });
+
+                                    // Update current riders to reflect the UI state
+                                    updateCurrentRiders();
+                                }
+                            }, 200); // Increased timeout to ensure riders dropdown is fully loaded
                         } else {
                             // No riders assigned initially
+                            console.log('No riders found in order data');
                             window.originalRiders = [];
                             window.currentRiders = [];
                         }
@@ -955,6 +972,22 @@
             const ridersSelect = document.getElementById('orderRiders');
             window.currentRiders = Array.from(ridersSelect.selectedOptions).map(option => parseInt(option.value));
             console.log('Current riders updated:', window.currentRiders);
+
+            // Update visual counter
+            updateRidersCounter();
+        }
+
+        // Update the visual counter of selected riders
+        function updateRidersCounter() {
+            const countBadge = document.getElementById('ridersSelectedCount');
+            const countSpan = document.getElementById('ridersCount');
+
+            if (window.currentRiders.length > 0) {
+                countSpan.textContent = window.currentRiders.length;
+                countBadge.style.display = 'block';
+            } else {
+                countBadge.style.display = 'none';
+            }
         }
 
         // Generate riders data with object states for the save request
