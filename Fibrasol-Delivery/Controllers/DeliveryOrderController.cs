@@ -29,6 +29,12 @@ public class DeliveryOrderController : Controller
     {
         return View();
     }
+
+    [Route("constancias/{id}/impresion")]
+    public IActionResult Print(int id)
+    {
+        return View();
+    }
     #endregion
 
     #region HTTP Methods
