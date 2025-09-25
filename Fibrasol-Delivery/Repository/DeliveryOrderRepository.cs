@@ -59,20 +59,32 @@ public class DeliveryOrderRepository : IDeliveryOrderRepository
 
     public async Task<DeliveryOrderModel> GetByIdAsync(int id)
     {
-        const string query = "SELECT a.Id, a.Created, a.Total, a.StatusId, b.Id, b.Name, c.Id AS BackorderId, c.Id, c.Number, c.Weight, d.Id AS ClientId, d.Id, d.Name, e.Id AS InvoiceId, e.Id, e.Address, e.Reference, e.Value, e.Attatchment, e.SignedAttatchment From DeliveryOrder a INNER JOIN DeliveryOrderStatus b ON a.StatusId = b.Id LEFT JOIN BackOrder c ON a.Id = c.DeliveryOrderId LEFT JOIN Clients d ON d.Id = c.ClientId LEFT JOIN Invoice e ON e.BackorderId = c.Id WHERE a.Id = @pId;";
+        const string query = "SELECT a.Id, a.Created, a.Total, a.StatusId, b.Id, b.Name, f.Id AS RiderAssignationId, g.Id, g.Name, c.Id AS BackorderId, c.Id, c.Number, c.Weight, d.Id AS ClientId, d.Id, d.Name, e.Id AS InvoiceId, e.Id, e.Address, e.Reference, e.Value, e.Attatchment, e.SignedAttatchment From DeliveryOrder a INNER JOIN DeliveryOrderStatus b ON a.StatusId = b.Id LEFT JOIN BackOrder c ON a.Id = c.DeliveryOrderId LEFT JOIN Clients d ON d.Id = c.ClientId LEFT JOIN Invoice e ON e.BackorderId = c.Id LEFT JOIN DeliveryOrderDrivers f ON f.DeliveryOrderId = a.Id LEFT JOIN Drivers g ON g.Id = f.DriverId WHERE a.Id = @pId;";
         using var conn = new MySqlConnection(_connectionString);
         var deliveryDisctionary = new Dictionary<int, DeliveryOrderModel>();
+        var riderDisctionary = new Dictionary<int, RiderModel>();
         var backOrderDictionary = new Dictionary<int, BackOrderModel>();
         var invoiceDictionary = new Dictionary<int, InvoiceModel>();
-        var transactionResult = await conn.QueryAsync<DeliveryOrderModel, DeliveryOrderStatusModel, BackOrderModel, ClientModel, InvoiceModel, DeliveryOrderModel >(query,
-        (deliveryOrder, status, backOrder, client, invoice) =>
+        var transactionResult = await conn.QueryAsync<DeliveryOrderModel, DeliveryOrderStatusModel, RiderModel, BackOrderModel, ClientModel, InvoiceModel, DeliveryOrderModel >(query,
+        (deliveryOrder, status, rider, backOrder, client, invoice) =>
         {
             if (!deliveryDisctionary.TryGetValue(deliveryOrder.Id, out DeliveryOrderModel? myOrder))
             {
                 myOrder = deliveryOrder;
                 myOrder.Status = status;
                 myOrder.Backorders = new List<BackOrderModel>();
+                myOrder.Riders = new List<RiderModel>();
                 deliveryDisctionary.Add(myOrder.Id, myOrder);
+            }
+
+            if(rider != null)
+            {
+                if (!riderDisctionary.TryGetValue(deliveryOrder.Id, out RiderModel? myRider))
+                {
+                    myRider = rider;
+                    myOrder.Riders.Add(myRider);
+                    riderDisctionary.Add(myRider.Id, myRider);
+                }
             }
 
             if (backOrder != null)
