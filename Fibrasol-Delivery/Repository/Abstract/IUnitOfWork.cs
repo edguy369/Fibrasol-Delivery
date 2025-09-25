@@ -8,4 +8,5 @@ public interface IUnitOfWork
     public IInvoiceRepository Invoices { get; }
     public IBackOrderRepository BackOrders { get; }
     public IDeliveryOrderRepository DeliveryOrders { get; }
+    public IDeliveryOrderDriverRepository DeliveryOrderDrivers { get; }
 }
