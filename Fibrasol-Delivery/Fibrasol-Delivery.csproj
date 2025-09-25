@@ -16,6 +16,7 @@
     <PackageReference Include="Dapper" Version="2.1.66" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Razor.RuntimeCompilation" Version="8.0.20" />
     <PackageReference Include="MySql.Data" Version="9.4.0" />
+    <PackageReference Include="Tipi.Tools.Services.DoSpaces" Version="8.0.1" />
   </ItemGroup>
 
 </Project>
