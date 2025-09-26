@@ -39,6 +39,14 @@ public class HomeController : Controller
     }
 
     [HttpGet]
+    [Route("dashboards/delivery-orders")]
+    public async Task<IActionResult> CountDeliveryOrdersAsync()
+    {
+        var deliveryOrderCount = await _unitOfWork.DeliveryOrders.CountAsync();
+        return Ok(deliveryOrderCount);
+    }
+
+    [HttpGet]
     [Route("dashboards/invoices")]
     public async Task<IActionResult> CountInvoicesAsync()
     {

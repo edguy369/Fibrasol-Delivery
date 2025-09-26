@@ -1,5 +1,373 @@
-﻿@*
-    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-*@
-@{
+﻿@{
+    ViewData["Title"] = "Dashboard";
 }
+
+<style>
+    .dashboard-container {
+        padding: 2rem 0;
+    }
+
+    .page-header {
+        background: linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%);
+        color: white;
+        padding: 2rem;
+        border-radius: 15px;
+        margin-bottom: 2rem;
+        box-shadow: 0 8px 32px rgba(79, 70, 229, 0.3);
+    }
+
+    .dashboard-card {
+        background: white;
+        border-radius: 15px;
+        padding: 2rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        transition: all 0.3s ease;
+        height: 100%;
+        border-left: 5px solid;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .dashboard-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+    }
+
+    .dashboard-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        opacity: 0.1;
+        transition: all 0.3s ease;
+    }
+
+    .dashboard-card:hover::before {
+        transform: scale(1.2);
+        opacity: 0.15;
+    }
+
+    .card-drivers {
+        border-left-color: #10b981;
+    }
+
+    .card-drivers::before {
+        background-color: #10b981;
+    }
+
+    .card-clients {
+        border-left-color: #3b82f6;
+    }
+
+    .card-clients::before {
+        background-color: #3b82f6;
+    }
+
+    .card-orders {
+        border-left-color: #f59e0b;
+    }
+
+    .card-orders::before {
+        background-color: #f59e0b;
+    }
+
+    .card-invoices {
+        border-left-color: #ef4444;
+    }
+
+    .card-invoices::before {
+        background-color: #ef4444;
+    }
+
+    .card-icon {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        opacity: 0.8;
+    }
+
+    .card-drivers .card-icon {
+        color: #10b981;
+    }
+
+    .card-clients .card-icon {
+        color: #3b82f6;
+    }
+
+    .card-orders .card-icon {
+        color: #f59e0b;
+    }
+
+    .card-invoices .card-icon {
+        color: #ef4444;
+    }
+
+    .card-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #6b7280;
+        margin-bottom: 0.5rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .card-number {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: #1f2937;
+        margin-bottom: 0.5rem;
+        line-height: 1;
+    }
+
+    .card-subtitle {
+        font-size: 0.9rem;
+        color: #9ca3af;
+        margin: 0;
+    }
+
+    .loading-spinner {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border: 3px solid #f3f3f3;
+        border-top: 3px solid #4f46e5;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+
+    @@keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    .invoice-comparison {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-top: 0.5rem;
+    }
+
+    .progress-bar {
+        flex: 1;
+        height: 8px;
+        background-color: #f3f4f6;
+        border-radius: 4px;
+        overflow: hidden;
+    }
+
+    .progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #10b981, #34d399);
+        border-radius: 4px;
+        transition: width 0.3s ease;
+        width: 0%;
+    }
+
+    .progress-text {
+        font-size: 0.8rem;
+        color: #6b7280;
+        font-weight: 500;
+        white-space: nowrap;
+    }
+
+    .error-message {
+        color: #ef4444;
+        font-size: 0.9rem;
+        font-style: italic;
+    }
+</style>
+
+<div class="dashboard-container">
+    <div class="page-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1 class="mb-2"><i class="bi bi-speedometer2 me-3"></i>Dashboard</h1>
+                <p class="mb-0 opacity-75">Resumen general del sistema de entregas</p>
+            </div>
+            <div class="text-end">
+                <p class="mb-0 opacity-75">Última actualización</p>
+                <p class="mb-0" id="lastUpdate">Cargando...</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Drivers Card -->
+        <div class="col-lg-3 col-md-6">
+            <div class="dashboard-card card-drivers">
+                <div class="card-icon">
+                    <i class="bi bi-person-badge"></i>
+                </div>
+                <h6 class="card-title">Mensajeros</h6>
+                <div class="card-number" id="driversCount">
+                    <div class="loading-spinner"></div>
+                </div>
+                <p class="card-subtitle">Total de mensajeros registrados</p>
+            </div>
+        </div>
+
+        <!-- Clients Card -->
+        <div class="col-lg-3 col-md-6">
+            <div class="dashboard-card card-clients">
+                <div class="card-icon">
+                    <i class="bi bi-people"></i>
+                </div>
+                <h6 class="card-title">Clientes</h6>
+                <div class="card-number" id="clientsCount">
+                    <div class="loading-spinner"></div>
+                </div>
+                <p class="card-subtitle">Total de clientes activos</p>
+            </div>
+        </div>
+
+        <!-- Delivery Orders Card -->
+        <div class="col-lg-3 col-md-6">
+            <div class="dashboard-card card-orders">
+                <div class="card-icon">
+                    <i class="bi bi-truck"></i>
+                </div>
+                <h6 class="card-title">Órdenes de Entrega</h6>
+                <div class="card-number" id="ordersCount">
+                    <div class="loading-spinner"></div>
+                </div>
+                <p class="card-subtitle">Total de órdenes gestionadas</p>
+            </div>
+        </div>
+
+        <!-- Invoices Card -->
+        <div class="col-lg-3 col-md-6">
+            <div class="dashboard-card card-invoices">
+                <div class="card-icon">
+                    <i class="bi bi-receipt"></i>
+                </div>
+                <h6 class="card-title">Facturas</h6>
+                <div class="card-number" id="invoicesCount">
+                    <div class="loading-spinner"></div>
+                </div>
+                <div class="invoice-comparison">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="invoicesProgress"></div>
+                    </div>
+                    <div class="progress-text" id="invoicesText">0/0 firmadas</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Dashboard data loading
+    document.addEventListener('DOMContentLoaded', function() {
+        loadDashboardData();
+        updateTimestamp();
+    });
+
+    async function loadDashboardData() {
+        try {
+            // Load all dashboard counters in parallel
+            const [driversData, clientsData, ordersData, invoicesData] = await Promise.all([
+                fetchData('/dashboards/riders'),
+                fetchData('/dashboards/clients'),
+                fetchData('/dashboards/delivery-orders'),
+                fetchData('/dashboards/invoices')
+            ]);
+
+            // Update drivers count
+            updateCounter('driversCount', driversData);
+
+            // Update clients count
+            updateCounter('clientsCount', clientsData);
+
+            // Update delivery orders count
+            updateCounter('ordersCount', ordersData);
+
+            // Update invoices count with comparison
+            updateInvoicesCounter(invoicesData);
+
+        } catch (error) {
+            console.error('Error loading dashboard data:', error);
+            showErrorState();
+        }
+    }
+
+    async function fetchData(url) {
+        const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return await response.json();
+    }
+
+    function updateCounter(elementId, count) {
+        const element = document.getElementById(elementId);
+        if (element) {
+            // Add animation effect
+            element.style.opacity = '0.5';
+            setTimeout(() => {
+                element.innerHTML = count.toLocaleString('es-GT');
+                element.style.opacity = '1';
+            }, 200);
+        }
+    }
+
+    function updateInvoicesCounter(invoicesData) {
+        const totalInvoices = invoicesData.invoices || 0;
+        const signedInvoices = invoicesData.signedInvoices || 0;
+
+        // Update main counter
+        updateCounter('invoicesCount', totalInvoices);
+
+        // Update progress bar and text
+        const progressBar = document.getElementById('invoicesProgress');
+        const progressText = document.getElementById('invoicesText');
+
+        if (progressBar && progressText) {
+            const percentage = totalInvoices > 0 ? (signedInvoices / totalInvoices) * 100 : 0;
+
+            setTimeout(() => {
+                progressBar.style.width = `${percentage}%`;
+                progressText.textContent = `${signedInvoices.toLocaleString('es-GT')}/${totalInvoices.toLocaleString('es-GT')} firmadas`;
+            }, 300);
+        }
+    }
+
+    function showErrorState() {
+        const counters = ['driversCount', 'clientsCount', 'ordersCount', 'invoicesCount'];
+        counters.forEach(counterId => {
+            const element = document.getElementById(counterId);
+            if (element) {
+                element.innerHTML = '<span class="error-message">Error al cargar</span>';
+            }
+        });
+
+        // Show error in progress text
+        const progressText = document.getElementById('invoicesText');
+        if (progressText) {
+            progressText.innerHTML = '<span class="error-message">Error</span>';
+        }
+    }
+
+    function updateTimestamp() {
+        const now = new Date();
+        const timestamp = now.toLocaleString('es-GT', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+
+        const lastUpdateElement = document.getElementById('lastUpdate');
+        if (lastUpdateElement) {
+            lastUpdateElement.textContent = timestamp;
+        }
+    }
+
+    // Refresh dashboard every 5 minutes
+    setInterval(function() {
+        loadDashboardData();
+        updateTimestamp();
+    }, 300000); // 5 minutes
+</script>
