@@ -47,6 +47,14 @@ public class DeliveryOrderController : Controller
     }
 
     [HttpGet]
+    [Route("delivery-orders/unsigned")]
+    public async Task<IActionResult> GetAllUnsignedAsync()
+    {
+        var deliveryOrderList = await _unitOfWork.DeliveryOrders.GetAllUnsignedAsync();
+        return Ok(deliveryOrderList);
+    }
+
+    [HttpGet]
     [Route("delivery-orders/{id}")]
     public async Task<IActionResult> GetAsyncById(int id)
     {

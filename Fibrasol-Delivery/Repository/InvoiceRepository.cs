@@ -24,7 +24,7 @@ public class InvoiceRepository : IInvoiceRepository
 
     public async Task<int> CountSignedAsync()
     {
-        const string query = "SELECT COUNT(Id) FROM Invoice WHERE SignedAttatchment IS NOT NULL;";
+        const string query = "SELECT COUNT(Id) FROM Invoice WHERE SignedAttatchment != '';";
         using var conn = new MySqlConnection(_connectionString);
         var transactionResult = await conn.ExecuteScalarAsync<int>(query);
         return transactionResult;

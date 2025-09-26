@@ -3,13 +3,7 @@ using Fibrasol_Delivery.Config;
 using Fibrasol_Delivery.Models;
 using Fibrasol_Delivery.Repository.Abstract;
 using Fibrasol_Delivery.Request;
-using Microsoft.Extensions.Hosting;
 using MySql.Data.MySqlClient;
-using Org.BouncyCastle.Asn1.Ocsp;
-using System.Collections.Specialized;
-using System.Security.Cryptography;
-using System.Xml.Linq;
-
 namespace Fibrasol_Delivery.Repository;
 
 public class DeliveryOrderRepository : IDeliveryOrderRepository
@@ -63,6 +57,20 @@ public class DeliveryOrderRepository : IDeliveryOrderRepository
             return deliveryOrder;
         },
         splitOn:  "StatusId");
+        return transactionResult;
+    }
+
+    public async Task<IEnumerable<DeliveryOrderModel>> GetAllUnsignedAsync()
+    {
+        const string query = "SELECT a.Id, a.Created, a.Total, a.StatusId, b.Id, b.Name From DeliveryOrder a INNER JOIN DeliveryOrderStatus b ON a.StatusId = b.Id LEFT JOIN BackOrder c ON a.Id = c.DeliveryOrderId LEFT JOIN Invoice e ON e.BackorderId = c.Id WHERE e.SignedAttatchment = '';";
+        using var conn = new MySqlConnection(_connectionString);
+        var transactionResult = await conn.QueryAsync<DeliveryOrderModel, DeliveryOrderStatusModel, DeliveryOrderModel>(query,
+        (deliveryOrder, status) =>
+        {
+            deliveryOrder.Status = status;
+            return deliveryOrder;
+        },
+        splitOn: "StatusId");
         return transactionResult;
     }
 
