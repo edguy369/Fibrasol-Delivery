@@ -10,4 +10,5 @@ public interface IDeliveryOrderRepository
     Task<int> CreateAsync(DeliveryOrderRequest request);
     Task<bool> UpdateAsync(int id, DeliveryOrderCompleteRequest request);
     Task<bool> DeleteAsync(int id);
+    Task<int> CountAsync();
 }

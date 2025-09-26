@@ -19,6 +19,15 @@ public class DeliveryOrderRepository : IDeliveryOrderRepository
     {
         _connectionString = connectionString.Value;
     }
+
+    public async Task<int> CountAsync()
+    {
+        const string query = "SELECT COUNT(Id) FROM DeliveryOrder;";
+        using var conn = new MySqlConnection(_connectionString);
+        var transactionResult = await conn.ExecuteScalarAsync<int>(query);
+        return transactionResult;
+    }
+
     public async Task<int> CreateAsync(DeliveryOrderRequest request)
     {
         const string query = "INSERT INTO DeliveryOrder (StatusId, Total) " +

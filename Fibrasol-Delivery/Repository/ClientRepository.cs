@@ -14,6 +14,15 @@ public class ClientRepository : IClientRepository
     {
         _connectionString = connectionString.Value;
     }
+
+    public async Task<int> CountAsync()
+    {
+        const string query = "SELECT COUNT(Id) FROM Clients;";
+        using var conn = new MySqlConnection(_connectionString);
+        var transactionResult = await conn.ExecuteScalarAsync<int>(query);
+        return transactionResult;
+    }
+
     public async Task<int> CreateAsync(ClientRequest request)
     {
         const string query = "INSERT INTO Clients (Name) VALUES (@pName); SELECT LAST_INSERT_ID();";

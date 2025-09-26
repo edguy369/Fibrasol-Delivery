@@ -10,4 +10,5 @@ public interface IClientRepository
     Task<bool> DeleteAsync(int id);
     Task<IEnumerable<ClientModel>> GetAllAsync();
     Task<ClientModel> GetByName(string name);
+    Task<int> CountAsync();
 }

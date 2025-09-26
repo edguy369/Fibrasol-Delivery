@@ -9,4 +9,5 @@ public interface IRiderRepository
     Task<bool> UpdateAsync(int id, RiderRequest request);
     Task<bool> DeleteAsync(int id);
     Task<IEnumerable<RiderModel>> GetAllAsync();
+    Task<int> CountAsync();
 }
