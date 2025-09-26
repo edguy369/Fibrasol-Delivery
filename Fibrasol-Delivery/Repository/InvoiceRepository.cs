@@ -14,6 +14,22 @@ public class InvoiceRepository : IInvoiceRepository
         _connectionString = connectionString.Value;
     }
 
+    public async Task<int> CountAsync()
+    {
+        const string query = "SELECT COUNT(Id) FROM Invoice;";
+        using var conn = new MySqlConnection(_connectionString);
+        var transactionResult = await conn.ExecuteScalarAsync<int>(query);
+        return transactionResult;
+    }
+
+    public async Task<int> CountSignedAsync()
+    {
+        const string query = "SELECT COUNT(Id) FROM Invoice WHERE SignedAttatchment IS NOT NULL;";
+        using var conn = new MySqlConnection(_connectionString);
+        var transactionResult = await conn.ExecuteScalarAsync<int>(query);
+        return transactionResult;
+    }
+
     public async Task<int> CreateAsync(InvoiceRequest request)
     {
         const string query = "INSERT INTO Invoice (BackorderId, Address, Reference, Value, Attatchment, SignedAttatchment) " +

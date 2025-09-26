@@ -7,4 +7,6 @@ public interface IInvoiceRepository
     Task<int> CreateAsync(InvoiceRequest request);
     Task<bool> UpdateAsync(int id, InvoiceRequest request);
     Task<bool> DeleteAsync(int id);
+    Task<int> CountAsync();
+    Task<int> CountSignedAsync();
 }
