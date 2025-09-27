@@ -45,19 +45,19 @@ public class ClientRepository : IClientRepository
         return transactionResult != 0;
     }
 
-    public async Task<IEnumerable<ClientModel>> GetAllAsync()
+    public async Task<IEnumerable<SalesPersonModel>> GetAllAsync()
     {
         const string query = "SELECT * FROM Clients;";
         using var conn = new MySqlConnection(_connectionString);
-        var transactionResult = await conn.QueryAsync<ClientModel>(query);
+        var transactionResult = await conn.QueryAsync<SalesPersonModel>(query);
         return transactionResult;
     }
 
-    public async Task<ClientModel> GetByName(string name)
+    public async Task<SalesPersonModel> GetByName(string name)
     {
         const string query = "SELECT * FROM Clients WHERE Name = @pName;";
         using var conn = new MySqlConnection(_connectionString);
-        var transactionResult = await conn.QueryFirstOrDefaultAsync<ClientModel>(query,
+        var transactionResult = await conn.QueryFirstOrDefaultAsync<SalesPersonModel>(query,
         new {
             pName = name
         });

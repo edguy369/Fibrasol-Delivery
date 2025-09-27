@@ -8,10 +8,12 @@ namespace Fibrasol_Delivery.Controllers;
 public class HomeController : Controller
 {
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ILogger<HomeController> _logger;
 
-    public HomeController(IUnitOfWork unitOfWork)
+    public HomeController(IUnitOfWork unitOfWork, ILogger<HomeController> logger)
     {
         _unitOfWork = unitOfWork;
+        _logger = logger;
     }
     #region Views
     public IActionResult Index()
@@ -26,8 +28,16 @@ public class HomeController : Controller
     [Route("dashboards/clients")]
     public async Task<IActionResult> CountClientsAsync()
     {
-        var clientCount = await _unitOfWork.Clients.CountAsync();
-        return Ok(clientCount);
+        try
+        {
+            var clientCount = await _unitOfWork.Clients.CountAsync();
+            return Ok(clientCount);
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "An error occurred while counting clients.");
+            throw;
+        }
     }
 
     [HttpGet]

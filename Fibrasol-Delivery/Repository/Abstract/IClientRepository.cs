@@ -8,7 +8,7 @@ public interface IClientRepository
     Task<int> CreateAsync(ClientRequest request);
     Task<bool> UpdateAsync(int id, ClientRequest request);
     Task<bool> DeleteAsync(int id);
-    Task<IEnumerable<ClientModel>> GetAllAsync();
-    Task<ClientModel> GetByName(string name);
+    Task<IEnumerable<SalesPersonModel>> GetAllAsync();
+    Task<SalesPersonModel> GetByName(string name);
     Task<int> CountAsync();
 }

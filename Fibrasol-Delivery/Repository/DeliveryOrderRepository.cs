@@ -82,7 +82,7 @@ public class DeliveryOrderRepository : IDeliveryOrderRepository
         var riderDisctionary = new Dictionary<int, RiderModel>();
         var backOrderDictionary = new Dictionary<int, BackOrderModel>();
         var invoiceDictionary = new Dictionary<int, InvoiceModel>();
-        var transactionResult = await conn.QueryAsync<DeliveryOrderModel, DeliveryOrderStatusModel, RiderModel, BackOrderModel, ClientModel, InvoiceModel, DeliveryOrderModel >(query,
+        var transactionResult = await conn.QueryAsync<DeliveryOrderModel, DeliveryOrderStatusModel, RiderModel, BackOrderModel, SalesPersonModel, InvoiceModel, DeliveryOrderModel >(query,
         (deliveryOrder, status, rider, backOrder, client, invoice) =>
         {
             if (!deliveryDisctionary.TryGetValue(deliveryOrder.Id, out DeliveryOrderModel? myOrder))
