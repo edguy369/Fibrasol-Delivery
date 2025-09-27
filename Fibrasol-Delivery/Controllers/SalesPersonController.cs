@@ -20,6 +20,12 @@ public class SalesPersonController : Controller
     {
         return View();
     }
+
+    [Route("vendedores/reportes")]
+    public IActionResult Report()
+    {
+        return View();
+    }
     #endregion
 
     #region Methods
@@ -62,6 +68,41 @@ public class SalesPersonController : Controller
             return BadRequest();
 
         return Ok();
+    }
+
+    [HttpPost]
+    [Route("sales-persons/report")]
+    public async Task<IActionResult> GetReportAsync([FromBody] SalesReportRequest? request = null)
+    {
+        try
+        {
+            // If no request is provided, create one for the current month
+            if (request == null)
+            {
+                var now = DateTime.Now;
+                request = new SalesReportRequest
+                {
+                    StartDate = new DateTime(now.Year, now.Month, 1), // First day of current month
+                    EndDate = new DateTime(now.Year, now.Month, DateTime.DaysInMonth(now.Year, now.Month)) // Last day of current month
+                };
+            }
+
+            // Validate the date range
+            if (request.StartDate > request.EndDate)
+            {
+                return BadRequest("Start date cannot be greater than end date.");
+            }
+
+            // Call the repository method to get the sales report
+            var salesReport = await _unitOfWork.SalesPersons.GetSalesReportAsync(request.StartDate, request.EndDate);
+
+            return Ok(salesReport);
+        }
+        catch (Exception ex)
+        {
+            // Log the exception here if you have logging configured
+            return StatusCode(500, $"Internal server error: {ex.Message}");
+        }
     }
     #endregion
 }
