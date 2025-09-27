@@ -8,5 +8,5 @@ public class InvoiceModel
     public double Value { get; set; } = default!;
     public string? Attatchment { get; set; }
     public string? SignedAttatchment { get; set; }
-    public int SalesPersonId { get; set; }
+    public SalesPersonModel SalesPerson { get; set; } = default!;
 }

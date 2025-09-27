@@ -335,15 +335,21 @@
                     console.log('Delivery statuses loaded:', statuses);
                     const statusSelect = $('#orderStatus');
                     statusSelect.empty();
-                    
+
                     // Add default option
                     statusSelect.append('<option value="">Seleccione un estado</option>');
-                    
+
                     // Add status options from database
                     statuses.forEach(function(status) {
                         statusSelect.append(`<option value="${status.id}" data-name="${status.name}">${status.name}</option>`);
                     });
-                    
+
+                    // Set default status to 1 for new orders
+                    if (isNewOrder && statuses.length > 0) {
+                        statusSelect.val('1'); // Set to status ID 1
+                        console.log('Default status (ID: 1) selected for new order');
+                    }
+
                     console.log('Status options added to dropdown');
                 },
                 error: function(xhr, status, error) {
@@ -358,7 +364,13 @@
                     statusSelect.append('<option value="2" data-name="En Progreso">En Progreso</option>');
                     statusSelect.append('<option value="3" data-name="Entregado">Entregado</option>');
                     statusSelect.append('<option value="4" data-name="Cancelado">Cancelado</option>');
-                    
+
+                    // Set default status to 1 for new orders (fallback)
+                    if (isNewOrder) {
+                        statusSelect.val('1'); // Set to status ID 1
+                        console.log('Default status (ID: 1) selected for new order (fallback)');
+                    }
+
                     // Show error message to user
                     showErrorMessage('Error al cargar los estados. Se han cargado valores por defecto.');
                 }
@@ -702,7 +714,13 @@
             // Populate SalesPerson dropdown for the newly added factura
             const newFacturaCard = facturasContainer.lastElementChild;
             const salesPersonSelect = newFacturaCard.querySelector('.factura-salesperson');
-            populateSalesPersonDropdown(salesPersonSelect, data ? data.salesPersonId : null);
+            const selectedSalesPersonId = data && data.salesPerson ? data.salesPerson.id : null;
+
+            if (data && data.salesPerson) {
+                console.log(`Loading SalesPerson for invoice: ${data.salesPerson.name} (ID: ${data.salesPerson.id})`);
+            }
+
+            populateSalesPersonDropdown(salesPersonSelect, selectedSalesPersonId);
 
             // Update total after adding factura
             updateOrderTotal();

@@ -63,27 +63,34 @@ public class DeliveryOrderRepository : IDeliveryOrderRepository
     public async Task<IEnumerable<DeliveryOrderModel>> GetAllUnsignedAsync()
     {
         const string query = "SELECT a.Id, a.Created, a.Total, a.StatusId, b.Id, b.Name From DeliveryOrder a INNER JOIN DeliveryOrderStatus b ON a.StatusId = b.Id LEFT JOIN BackOrder c ON a.Id = c.DeliveryOrderId LEFT JOIN Invoice e ON e.BackorderId = c.Id WHERE e.SignedAttatchment = '';";
+        var deliveryDisctionary = new Dictionary<int, DeliveryOrderModel>();
         using var conn = new MySqlConnection(_connectionString);
         var transactionResult = await conn.QueryAsync<DeliveryOrderModel, DeliveryOrderStatusModel, DeliveryOrderModel>(query,
         (deliveryOrder, status) =>
         {
-            deliveryOrder.Status = status;
-            return deliveryOrder;
+            if (!deliveryDisctionary.TryGetValue(deliveryOrder.Id, out DeliveryOrderModel? myOrder))
+            {
+                myOrder = deliveryOrder;
+                myOrder.Status = status;
+                deliveryDisctionary.Add(myOrder.Id, myOrder);
+            }
+
+            return myOrder;
         },
         splitOn: "StatusId");
-        return transactionResult;
+        return transactionResult.Distinct();
     }
 
     public async Task<DeliveryOrderModel> GetByIdAsync(int id)
     {
-        const string query = "SELECT a.Id, a.Created, a.Total, a.StatusId, b.Id, b.Name, f.Id AS RiderAssignationId, g.Id, g.Name, c.Id AS BackorderId, c.Id, c.Number, c.Weight, d.Id AS ClientId, d.Id, d.Name, e.Id AS InvoiceId, e.Id, e.Address, e.Reference, e.Value, e.Attatchment, e.SignedAttatchment From DeliveryOrder a INNER JOIN DeliveryOrderStatus b ON a.StatusId = b.Id LEFT JOIN BackOrder c ON a.Id = c.DeliveryOrderId LEFT JOIN Clients d ON d.Id = c.ClientId LEFT JOIN Invoice e ON e.BackorderId = c.Id LEFT JOIN DeliveryOrderDrivers f ON f.DeliveryOrderId = a.Id LEFT JOIN Drivers g ON g.Id = f.DriverId WHERE a.Id = @pId;";
+        const string query = "SELECT a.Id, a.Created, a.Total, a.StatusId, b.Id, b.Name, f.Id AS RiderAssignationId, g.Id, g.Name, c.Id AS BackorderId, c.Id, c.Number, c.Weight, d.Id AS ClientId, d.Id, d.Name, e.Id AS InvoiceId, e.Id, e.Address, e.Reference, e.Value, e.Attatchment, e.SignedAttatchment, h.Id AS SalesPersonId, h.Id, h.Name From DeliveryOrder a INNER JOIN DeliveryOrderStatus b ON a.StatusId = b.Id LEFT JOIN BackOrder c ON a.Id = c.DeliveryOrderId LEFT JOIN Clients d ON d.Id = c.ClientId LEFT JOIN Invoice e ON e.BackorderId = c.Id LEFT JOIN DeliveryOrderDrivers f ON f.DeliveryOrderId = a.Id LEFT JOIN Drivers g ON g.Id = f.DriverId LEFT JOIN SalesPerson h ON h.Id = e.SalesPersonId  WHERE a.Id = @pId;";
         using var conn = new MySqlConnection(_connectionString);
         var deliveryDisctionary = new Dictionary<int, DeliveryOrderModel>();
         var riderDisctionary = new Dictionary<int, RiderModel>();
         var backOrderDictionary = new Dictionary<int, BackOrderModel>();
         var invoiceDictionary = new Dictionary<int, InvoiceModel>();
-        var transactionResult = await conn.QueryAsync<DeliveryOrderModel, DeliveryOrderStatusModel, RiderModel, BackOrderModel, SalesPersonModel, InvoiceModel, DeliveryOrderModel >(query,
-        (deliveryOrder, status, rider, backOrder, client, invoice) =>
+        var transactionResult = await conn.QueryAsync<DeliveryOrderModel, DeliveryOrderStatusModel, RiderModel, BackOrderModel, ClientModel, InvoiceModel, SalesPersonModel, DeliveryOrderModel >(query,
+        (deliveryOrder, status, rider, backOrder, client, invoice, salesPerson) =>
         {
             if (!deliveryDisctionary.TryGetValue(deliveryOrder.Id, out DeliveryOrderModel? myOrder))
             {
@@ -120,6 +127,7 @@ public class DeliveryOrderRepository : IDeliveryOrderRepository
                     if (!invoiceDictionary.TryGetValue(invoice.Id, out InvoiceModel? myInvoice))
                     {
                         myInvoice = invoice;
+                        myInvoice.SalesPerson = salesPerson;
                         myBackOrder.Invoices.Add(myInvoice);
                         invoiceDictionary.Add(myInvoice.Id, myInvoice);
                     }
@@ -132,7 +140,7 @@ public class DeliveryOrderRepository : IDeliveryOrderRepository
         {
             pId = id
         },
-        splitOn: "StatusId,RiderAssignationId,BackorderId,ClientId,InvoiceId");
+        splitOn: "StatusId,RiderAssignationId,BackorderId,ClientId,InvoiceId,SalesPersonId");
         return transactionResult.Distinct().FirstOrDefault();
     }
 
