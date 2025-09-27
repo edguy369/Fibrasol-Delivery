@@ -17,6 +17,7 @@ public static class ServiceRegistration
         services.AddTransient<IBackOrderRepository, BackOrderRepository>();
         services.AddTransient<IDeliveryOrderRepository, DeliveryOrderRepository>();
         services.AddTransient<IDeliveryOrderDriverRepository, DeliveryOrderDriverRepository>();
+        services.AddTransient<ISalesPersonRepository, SalesPersonRepository>();
         services.AddTransient<IUnitOfWork, UnitOfWork>();
     }
 }

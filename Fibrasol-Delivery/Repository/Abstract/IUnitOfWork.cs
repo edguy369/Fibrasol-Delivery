@@ -9,4 +9,5 @@ public interface IUnitOfWork
     public IBackOrderRepository BackOrders { get; }
     public IDeliveryOrderRepository DeliveryOrders { get; }
     public IDeliveryOrderDriverRepository DeliveryOrderDrivers { get; }
+    public ISalesPersonRepository SalesPersons { get; }
 }

@@ -11,10 +11,12 @@ public class UnitOfWork : IUnitOfWork
     public IBackOrderRepository BackOrders { get; }
     public IDeliveryOrderRepository DeliveryOrders { get; }
     public IDeliveryOrderDriverRepository DeliveryOrderDrivers { get; }
+    public ISalesPersonRepository SalesPersons { get; }
     public UnitOfWork(IClientRepository clients,
         IRiderRepository riders, IDeliveryOrderStatusRepository deliveryOrderStatuses,
-        IInvoiceRepository invoices, IBackOrderRepository backOrders, 
-        IDeliveryOrderRepository deliveryOrders, IDeliveryOrderDriverRepository deliveryOrderDrivers)
+        IInvoiceRepository invoices, IBackOrderRepository backOrders,
+        IDeliveryOrderRepository deliveryOrders, IDeliveryOrderDriverRepository deliveryOrderDrivers,
+        ISalesPersonRepository salesPersons)
     {
         Clients = clients;
         Riders = riders;
@@ -23,5 +25,6 @@ public class UnitOfWork : IUnitOfWork
         BackOrders = backOrders;
         DeliveryOrders = deliveryOrders;
         DeliveryOrderDrivers = deliveryOrderDrivers;
+        SalesPersons = salesPersons;
     }
 }
