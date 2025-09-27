@@ -39,7 +39,7 @@ public class ClientController : Controller
         if (transactionResult == 0)
             return BadRequest();
 
-        return Ok();
+        return Ok(transactionResult);
     }
 
     [HttpPut]

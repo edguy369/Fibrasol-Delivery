@@ -292,6 +292,39 @@
     </form>
 </div>
 
+<!-- Create Client Modal -->
+<div class="modal fade" id="createClientModal" tabindex="-1" aria-labelledby="createClientModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="createClientModalLabel">Crear Nuevo Cliente</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="createClientForm">
+                    <div class="mb-3">
+                        <label for="newClientName" class="form-label">Nombre del Cliente</label>
+                        <input type="text" class="form-control" id="newClientName" required placeholder="Ingrese el nombre del cliente">
+                        <div class="invalid-feedback">
+                            Por favor, ingrese el nombre del cliente.
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary-custom" onclick="createNewClient()">
+                    <span class="btn-text">Crear Cliente</span>
+                    <span class="btn-spinner d-none">
+                        <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                        Creando...
+                    </span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
     <script>
         // Get order ID from URL
@@ -518,7 +551,12 @@
                         <div class="col-md-4">
                             <label class="form-label">Cliente</label>
                             <div class="client-search-container">
-                                <input type="text" class="form-control backorder-client" value="${data ? (data.client ? data.client.name : '') : ''}" placeholder="Buscar cliente..." autocomplete="off" onkeyup="searchClients(this)" onfocus="searchClients(this)" onblur="hideClientDropdown(this)" onchange="checkBackorderChanges(${backorderIndex})">
+                                <div class="input-group">
+                                    <input type="text" class="form-control backorder-client" value="${data ? (data.client ? data.client.name : '') : ''}" placeholder="Buscar cliente..." autocomplete="off" onkeyup="searchClients(this)" onfocus="searchClients(this)" onblur="hideClientDropdown(this)" onchange="checkBackorderChanges(${backorderIndex})">
+                                    <button class="btn btn-outline-primary" type="button" onclick="openCreateClientModal(${backorderIndex})" title="Crear nuevo cliente">
+                                        <i class="bi bi-plus"></i>
+                                    </button>
+                                </div>
                                 <input type="hidden" class="backorder-client-id" value="${data ? (data.client ? data.client.id : '') : ''}" onchange="checkBackorderChanges(${backorderIndex})">
                                 <div class="client-dropdown"></div>
                             </div>
@@ -1308,5 +1346,111 @@
                 selectElement.appendChild(option);
             });
         }
+
+        // Global variable to store which backorder is being edited
+        window.currentBackorderIndex = null;
+
+        // Open create client modal
+        function openCreateClientModal(backorderIndex) {
+            window.currentBackorderIndex = backorderIndex;
+            document.getElementById('newClientName').value = '';
+            document.getElementById('newClientName').classList.remove('is-invalid');
+
+            // Reset button state
+            const createBtn = document.querySelector('#createClientModal .btn-primary-custom');
+            createBtn.querySelector('.btn-text').classList.remove('d-none');
+            createBtn.querySelector('.btn-spinner').classList.add('d-none');
+            createBtn.disabled = false;
+
+            const modal = new bootstrap.Modal(document.getElementById('createClientModal'));
+            modal.show();
+        }
+
+        // Create new client
+        function createNewClient() {
+            const clientName = document.getElementById('newClientName').value.trim();
+            const nameInput = document.getElementById('newClientName');
+
+            // Validate input
+            if (!clientName) {
+                nameInput.classList.add('is-invalid');
+                return;
+            }
+
+            nameInput.classList.remove('is-invalid');
+
+            // Show loading state
+            const createBtn = document.querySelector('#createClientModal .btn-primary-custom');
+            createBtn.querySelector('.btn-text').classList.add('d-none');
+            createBtn.querySelector('.btn-spinner').classList.remove('d-none');
+            createBtn.disabled = true;
+
+            // Call the client creation API
+            $.ajax({
+                url: '/clients',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    Name: clientName
+                }),
+                success: function(newClientId) {
+                    console.log('Client created successfully with ID:', newClientId);
+
+                    // Create client object to add to the global list
+                    const newClient = {
+                        id: newClientId,
+                        name: clientName
+                    };
+
+                    // Add to global clients array
+                    if (!window.clients) {
+                        window.clients = [];
+                    }
+                    window.clients.push(newClient);
+
+                    // Update the current backorder's client field
+                    if (window.currentBackorderIndex !== null) {
+                        const backorderCard = document.querySelector(`[data-index="${window.currentBackorderIndex}"]`);
+                        if (backorderCard) {
+                            const clientInput = backorderCard.querySelector('.backorder-client');
+                            const clientIdInput = backorderCard.querySelector('.backorder-client-id');
+
+                            clientInput.value = clientName;
+                            clientIdInput.value = newClientId;
+
+                            // Trigger change event to mark backorder as modified
+                            clientIdInput.dispatchEvent(new Event('change'));
+                        }
+                    }
+
+                    // Close modal
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('createClientModal'));
+                    modal.hide();
+
+                    // Show success message
+                    showSuccessMessage(`Cliente "${clientName}" creado exitosamente`);
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error creating client:', error);
+                    showErrorMessage('Error al crear el cliente. Por favor, inténtelo de nuevo.');
+                },
+                complete: function() {
+                    // Reset button state
+                    createBtn.querySelector('.btn-text').classList.remove('d-none');
+                    createBtn.querySelector('.btn-spinner').classList.add('d-none');
+                    createBtn.disabled = false;
+                }
+            });
+        }
+
+        // Handle Enter key in client name input
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('newClientName').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    createNewClient();
+                }
+            });
+        });
     </script>
 }
