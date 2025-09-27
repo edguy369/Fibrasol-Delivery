@@ -32,20 +32,28 @@ public class InvoiceRepository : IInvoiceRepository
 
     public async Task<int> CreateAsync(InvoiceRequest request)
     {
-        const string query = "INSERT INTO Invoice (BackorderId, Address, Reference, Value, Attatchment, SignedAttatchment, SalesPersonId) " +
-            "VALUES (@pBackorderId, @pAddress, @pReference, @pValue, @pAttatchment, @pSignedAttatchment, @pSalesPersonId); SELECT LAST_INSERT_ID();";
-        using var conn = new MySqlConnection(_connectionString);
-        var transactionResult = await conn.ExecuteScalarAsync<int>(query, new
+        try
         {
-            pBackorderId = request.BackorderId,
-            pAddress = request.Address,
-            pReference = request.Reference,
-            pValue = request.Value,
-            pAttatchment = request.Attatchment,
-            pSignedAttatchment = request.SignedAttatchment,
-            pSalesPersonId = request.SalesPersonId
-        });
-        return transactionResult;
+            const string query = "INSERT INTO Invoice (BackorderId, Address, Reference, Value, Attatchment, SignedAttatchment, SalesPersonId) " +
+            "VALUES (@pBackorderId, @pAddress, @pReference, @pValue, @pAttatchment, @pSignedAttatchment, @pSalesPersonId); SELECT LAST_INSERT_ID();";
+            using var conn = new MySqlConnection(_connectionString);
+            var transactionResult = await conn.ExecuteScalarAsync<int>(query, new
+            {
+                pBackorderId = request.BackorderId,
+                pAddress = request.Address,
+                pReference = request.Reference,
+                pValue = request.Value,
+                pAttatchment = request.Attatchment,
+                pSignedAttatchment = request.SignedAttatchment,
+                pSalesPersonId = request.SalesPersonId
+            });
+            return transactionResult;
+        }
+        catch (Exception e)
+        {
+            throw e;
+        }
+        
     }
 
     public async Task<bool> DeleteAsync(int id)

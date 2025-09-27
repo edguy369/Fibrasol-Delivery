@@ -82,97 +82,126 @@ public class DeliveryOrderController : Controller
     [Route("delivery-orders/{id}")]
     public async Task<IActionResult> UpdateAsync(int id, [FromBody] DeliveryOrderCompleteRequest request)
     {
-        var transactionResult = await _unitOfWork.DeliveryOrders.UpdateAsync(id, request);
-        if (!transactionResult)
-            return BadRequest();
+        try
+        {
+            if (request == null)
+                return BadRequest("Request cannot be null");
+
+            if (id <= 0)
+                return BadRequest("Invalid delivery order ID");
+
+            var transactionResult = await _unitOfWork.DeliveryOrders.UpdateAsync(id, request);
+            if (!transactionResult)
+                return BadRequest("Failed to update delivery order");
 
         //AGREGAR DRIVERS
-        if (request.Riders.Count != 0)
+        if (request.Riders != null && request.Riders.Count > 0)
         {
-            foreach (var riders in request.Riders)
+            foreach (var rider in request.Riders)
             {
-                if(riders.ObjectState == "new")
-                    await _unitOfWork.DeliveryOrderDrivers.AssignAsync(riders.RiderId, id);
-                else if (riders.ObjectState == "delete")
-                    await _unitOfWork.DeliveryOrderDrivers.DeassignAsync(riders.RiderId, id);
+                if(rider.ObjectState == "new")
+                    await _unitOfWork.DeliveryOrderDrivers.AssignAsync(rider.RiderId, id);
+                else if (rider.ObjectState == "delete")
+                    await _unitOfWork.DeliveryOrderDrivers.DeassignAsync(rider.RiderId, id);
             }
         }
 
         //AGREGAR COMMANDAS
-        if(request.BackOrders.Count != 0)
+        if(request.BackOrders != null && request.BackOrders.Count > 0)
+        {
             foreach (var backOrder in request.BackOrders)
             {
+                int backOrderId = 0;
                 if (backOrder.ObjectStatus == "new")
-                    _ = await _unitOfWork.BackOrders.CreateAsync(backOrder);
+                    backOrderId = await _unitOfWork.BackOrders.CreateAsync(backOrder);
+
+                else if (backOrder.ObjectStatus == "update")
+                {
+                    _ = await _unitOfWork.BackOrders.UpdateAsync(backOrder.Id, backOrder);
+                    backOrderId = backOrder.Id;
+                }
                     
 
-                if (backOrder.ObjectStatus == "update")
-                    _ = await _unitOfWork.BackOrders.UpdateAsync(backOrder.Id, backOrder);
-
-                if (backOrder.ObjectStatus == "delete")
+                else if (backOrder.ObjectStatus == "delete")
                     _ = await _unitOfWork.BackOrders.DeleteAsync(backOrder.Id);
 
-                foreach (var invoice in backOrder.Invoices)
+                if (backOrder.Invoices != null)
                 {
-                    if (invoice.ObjectStatus == "new")
+                    foreach (var invoice in backOrder.Invoices)
                     {
-                        if (!String.IsNullOrEmpty(invoice.Attatchment))
+                        if (invoice.ObjectStatus == "new")
                         {
-                            var uploadImageResult = await _doSpaces.UploadFileAsync(invoice.Attatchment, "facturas");
-                            if (uploadImageResult.Success)
-                                invoice.Attatchment = uploadImageResult.Path;
-                        }
+                            // Validate SalesPersonId for new invoices
+                            if (invoice.SalesPersonId <= 0)
+                                return BadRequest($"SalesPersonId is required for invoice in backorder {backOrder.Id}");
 
-                        if (!String.IsNullOrEmpty(invoice.SignedAttatchment))
-                        {
-                            var uploadImageResult = await _doSpaces.UploadFileAsync(invoice.SignedAttatchment, "facturas-firmadas");
-                            if (uploadImageResult.Success)
-                                invoice.SignedAttatchment = uploadImageResult.Path;
-                        }
-
-                        _ = await _unitOfWork.Invoices.CreateAsync(invoice);
-                    }
-
-                    if (invoice.ObjectStatus == "update")
-                    {
-                        if (invoice.AttatchmentChanged)
-                        {
                             if (!String.IsNullOrEmpty(invoice.Attatchment))
                             {
                                 var uploadImageResult = await _doSpaces.UploadFileAsync(invoice.Attatchment, "facturas");
                                 if (uploadImageResult.Success)
                                     invoice.Attatchment = uploadImageResult.Path;
                             }
-                        }
 
-                        if (invoice.signedAttatchmentChanged)
-                        {
                             if (!String.IsNullOrEmpty(invoice.SignedAttatchment))
                             {
                                 var uploadImageResult = await _doSpaces.UploadFileAsync(invoice.SignedAttatchment, "facturas-firmadas");
                                 if (uploadImageResult.Success)
                                     invoice.SignedAttatchment = uploadImageResult.Path;
                             }
+                            invoice.BackorderId = backOrderId;
+                            _ = await _unitOfWork.Invoices.CreateAsync(invoice);
                         }
 
-                        _ = await _unitOfWork.Invoices.UpdateAsync(invoice.Id, invoice);
-                    }
+                        if (invoice.ObjectStatus == "update")
+                        {
+                            // Validate SalesPersonId for updated invoices
+                            if (invoice.SalesPersonId <= 0)
+                                return BadRequest($"SalesPersonId is required for invoice {invoice.Id}");
 
-                    if (invoice.ObjectStatus == "delete")
-                    {
-                        _ = await _unitOfWork.Invoices.DeleteAsync(backOrder.Id);
-                        if (!String.IsNullOrEmpty(invoice.Attatchment))
-                            await _doSpaces.DeleteFileAsync(invoice.Attatchment);
+                            if (invoice.AttatchmentChanged)
+                            {
+                                if (!String.IsNullOrEmpty(invoice.Attatchment))
+                                {
+                                    var uploadImageResult = await _doSpaces.UploadFileAsync(invoice.Attatchment, "facturas");
+                                    if (uploadImageResult.Success)
+                                        invoice.Attatchment = uploadImageResult.Path;
+                                }
+                            }
 
-                        if (!String.IsNullOrEmpty(invoice.SignedAttatchment))
-                            await _doSpaces.DeleteFileAsync(invoice.SignedAttatchment);
+                            if (invoice.signedAttatchmentChanged)
+                            {
+                                if (!String.IsNullOrEmpty(invoice.SignedAttatchment))
+                                {
+                                    var uploadImageResult = await _doSpaces.UploadFileAsync(invoice.SignedAttatchment, "facturas-firmadas");
+                                    if (uploadImageResult.Success)
+                                        invoice.SignedAttatchment = uploadImageResult.Path;
+                                }
+                            }
+
+                            _ = await _unitOfWork.Invoices.UpdateAsync(invoice.Id, invoice);
+                        }
+
+                        if (invoice.ObjectStatus == "delete")
+                        {
+                            _ = await _unitOfWork.Invoices.DeleteAsync(invoice.Id);
+                            if (!String.IsNullOrEmpty(invoice.Attatchment))
+                                await _doSpaces.DeleteFileAsync(invoice.Attatchment);
+
+                            if (!String.IsNullOrEmpty(invoice.SignedAttatchment))
+                                await _doSpaces.DeleteFileAsync(invoice.SignedAttatchment);
+                        }
                     }
                 }
             }
-                
+        }
 
-
-        return Ok();
+            return Ok();
+        }
+        catch (Exception ex)
+        {
+            // Log the exception here if you have logging configured
+            return StatusCode(500, $"Internal server error: {ex.Message}");
+        }
     }
 
     [HttpDelete]
