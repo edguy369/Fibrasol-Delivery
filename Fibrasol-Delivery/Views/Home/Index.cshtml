@@ -82,6 +82,14 @@
         background-color: #ef4444;
     }
 
+    .card-salespersons {
+        border-left-color: #8b5cf6;
+    }
+
+    .card-salespersons::before {
+        background-color: #8b5cf6;
+    }
+
     .card-icon {
         font-size: 3rem;
         margin-bottom: 1rem;
@@ -102,6 +110,10 @@
 
     .card-invoices .card-icon {
         color: #ef4444;
+    }
+
+    .card-salespersons .card-icon {
+        color: #8b5cf6;
     }
 
     .card-title {
@@ -312,7 +324,7 @@
 
     <div class="row g-4">
         <!-- Drivers Card -->
-        <div class="col-lg-3 col-md-6">
+        <div class="col-xl col-lg-4 col-md-6">
             <div class="dashboard-card card-drivers">
                 <div class="card-icon">
                     <i class="bi bi-person-badge"></i>
@@ -326,7 +338,7 @@
         </div>
 
         <!-- Clients Card -->
-        <div class="col-lg-3 col-md-6">
+        <div class="col-xl col-lg-4 col-md-6">
             <div class="dashboard-card card-clients">
                 <div class="card-icon">
                     <i class="bi bi-people"></i>
@@ -339,8 +351,22 @@
             </div>
         </div>
 
+        <!-- SalesPersons Card -->
+        <div class="col-xl col-lg-4 col-md-6">
+            <div class="dashboard-card card-salespersons">
+                <div class="card-icon">
+                    <i class="bi bi-person-badge-fill"></i>
+                </div>
+                <h6 class="card-title">Vendedores</h6>
+                <div class="card-number" id="salesPersonsCount">
+                    <div class="loading-spinner"></div>
+                </div>
+                <p class="card-subtitle">Total de vendedores registrados</p>
+            </div>
+        </div>
+
         <!-- Delivery Orders Card -->
-        <div class="col-lg-3 col-md-6">
+        <div class="col-xl col-lg-4 col-md-6">
             <div class="dashboard-card card-orders">
                 <div class="card-icon">
                     <i class="bi bi-truck"></i>
@@ -354,7 +380,7 @@
         </div>
 
         <!-- Invoices Card -->
-        <div class="col-lg-3 col-md-6">
+        <div class="col-xl col-lg-4 col-md-6">
             <div class="dashboard-card card-invoices">
                 <div class="card-icon">
                     <i class="bi bi-receipt"></i>
@@ -406,9 +432,10 @@
     async function loadDashboardData() {
         try {
             // Load all dashboard counters in parallel
-            const [driversData, clientsData, ordersData, invoicesData] = await Promise.all([
+            const [driversData, clientsData, salesPersonsData, ordersData, invoicesData] = await Promise.all([
                 fetchData('/dashboards/riders'),
                 fetchData('/dashboards/clients'),
+                fetchData('/dashboards/sales-persons'),
                 fetchData('/dashboards/delivery-orders'),
                 fetchData('/dashboards/invoices')
             ]);
@@ -418,6 +445,9 @@
 
             // Update clients count
             updateCounter('clientsCount', clientsData);
+
+            // Update sales persons count
+            updateCounter('salesPersonsCount', salesPersonsData);
 
             // Update delivery orders count
             updateCounter('ordersCount', ordersData);
@@ -473,7 +503,7 @@
     }
 
     function showErrorState() {
-        const counters = ['driversCount', 'clientsCount', 'ordersCount', 'invoicesCount'];
+        const counters = ['driversCount', 'clientsCount', 'salesPersonsCount', 'ordersCount', 'invoicesCount'];
         counters.forEach(counterId => {
             const element = document.getElementById(counterId);
             if (element) {

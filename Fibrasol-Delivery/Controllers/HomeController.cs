@@ -69,5 +69,13 @@ public class HomeController : Controller
             SignedInvoices = signedInvoicesCount
         });
     }
+
+    [HttpGet]
+    [Route("dashboards/sales-persons")]
+    public async Task<IActionResult> CountSalesPersonsAsync()
+    {
+        var salesPersonCount = await _unitOfWork.SalesPersons.CountAsync();
+        return Ok(salesPersonCount);
+    }
     #endregion
 }

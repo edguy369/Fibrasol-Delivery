@@ -41,5 +41,13 @@ public class AuthController : Controller
 
         return Ok();
     }
+
+    [HttpPost]
+    [Route("logout")]
+    public async Task<IActionResult> Logout()
+    {
+        await _signInManager.SignOutAsync();
+        return RedirectToAction("Index", "Auth");
+    }
     #endregion
 }

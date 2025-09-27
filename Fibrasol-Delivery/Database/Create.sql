@@ -147,7 +147,7 @@ CREATE TABLE `BackOrder` (
     CONSTRAINT `FK_Invoice_DeliveryOrder_DeliveryOrderId` FOREIGN KEY (`DeliveryOrderId`) REFERENCES `DeliveryOrder` (`Id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-/*COMANDAS*/
+/*INVOICE*/
 CREATE TABLE `Invoice` (
     `Id` INT NOT NULL AUTO_INCREMENT,
     `BackorderId` INT NOT NULL,
