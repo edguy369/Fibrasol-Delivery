@@ -27,8 +27,8 @@ public class SalesPersonController : Controller
     [Route("sales-persons")]
     public async Task<IActionResult> GetAllAsync()
     {
-        var clientList = await _unitOfWork.Clients.GetAllAsync();
-        return Ok(clientList);
+        var salesPersonList = await _unitOfWork.SalesPersons.GetAllAsync();
+        return Ok(salesPersonList);
     }
 
     [HttpPost]
