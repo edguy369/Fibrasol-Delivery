@@ -6,6 +6,7 @@ public class InvoiceModel
     public string Address { get; set; } = default!;
     public string Reference { get; set; } = default!;
     public double Value { get; set; } = default!;
-    public string? Attatchment { get; set; } 
+    public string? Attatchment { get; set; }
     public string? SignedAttatchment { get; set; }
+    public int SalesPersonId { get; set; }
 }

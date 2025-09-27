@@ -310,8 +310,13 @@
         // Global arrays to track rider selections and changes
         window.originalRiders = []; // Original rider IDs when loading existing order
         window.currentRiders = [];  // Currently selected rider IDs
-        
+
+        // Global array to store SalesPersons
+        window.salesPersons = [];
+
         $(document).ready(function() {
+            // Load SalesPersons on page load
+            loadSalesPersons();
             // Load statuses, clients, and riders
             Promise.all([loadDeliveryStatuses(), loadClients(), loadRiders()]).then(() => {
                 if (isNewOrder) {
@@ -628,13 +633,20 @@
                         </div>
                     </div>
                     <div class="row">
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <label class="form-label">Dirección</label>
                             <input type="text" class="form-control factura-direccion" value="${data ? data.address : ''}" placeholder="Ingrese la dirección" onchange="checkFacturaChanges(${comandaIndex}, ${facturaIndex})">
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <label class="form-label">Referencia</label>
                             <input type="text" class="form-control factura-reference" value="${data ? data.reference : ''}" placeholder="Ingrese la referencia" onchange="checkFacturaChanges(${comandaIndex}, ${facturaIndex})">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Vendedor</label>
+                            <select class="form-control factura-salesperson" onchange="checkFacturaChanges(${comandaIndex}, ${facturaIndex})">
+                                <option value="">Seleccione un vendedor</option>
+                                <!-- Options will be populated by JavaScript -->
+                            </select>
                         </div>
                     </div>
                     <div class="row mt-2">
@@ -686,6 +698,11 @@
             `;
 
             facturasContainer.insertAdjacentHTML('beforeend', facturaHtml);
+
+            // Populate SalesPerson dropdown for the newly added factura
+            const newFacturaCard = facturasContainer.lastElementChild;
+            const salesPersonSelect = newFacturaCard.querySelector('.factura-salesperson');
+            populateSalesPersonDropdown(salesPersonSelect, data ? data.salesPersonId : null);
 
             // Update total after adding factura
             updateOrderTotal();
@@ -838,6 +855,7 @@
             const currentAddress = facturaCard.querySelector('.factura-direccion').value;
             const currentReference = facturaCard.querySelector('.factura-reference').value;
             const currentValue = parseFloat(facturaCard.querySelector('.factura-value').value) || 0;
+            const currentSalesPersonId = parseInt(facturaCard.querySelector('.factura-salesperson').value) || 0;
             const attachmentChanged = facturaCard.querySelector('.factura-attachment-changed').value === 'true';
             const signedAttachmentChanged = facturaCard.querySelector('.factura-signed-attachment-changed').value === 'true';
 
@@ -859,6 +877,7 @@
             const address = facturaCard.querySelector('.factura-direccion').value;
             const reference = facturaCard.querySelector('.factura-reference').value;
             const value = parseFloat(facturaCard.querySelector('.factura-value').value) || 0;
+            const salesPersonId = parseInt(facturaCard.querySelector('.factura-salesperson').value) || 0;
             const attachment = facturaCard.querySelector('.factura-attachment-base64').value;
             const signedAttachment = facturaCard.querySelector('.factura-signed-attachment-base64').value;
             const attachmentChanged = facturaCard.querySelector('.factura-attachment-changed').value === 'true';
@@ -871,6 +890,7 @@
                 address: address,
                 reference: reference,
                 value: value,
+                salesPersonId: salesPersonId,
                 attatchment: attachment,
                 signedAttatchment: signedAttachment,
                 objectStatus: objectStatus,
@@ -1232,13 +1252,43 @@
                            '<i class="bi bi-exclamation-triangle me-2"></i>' + message +
                            '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>' +
                            '</div>';
-            
+
             $('.page-header').after(alertHtml);
-            
+
             // Auto-dismiss after 5 seconds
             setTimeout(function() {
                 $('.alert-warning').fadeOut();
             }, 5000);
+        }
+
+        // Load SalesPersons from API
+        function loadSalesPersons() {
+            $.ajax({
+                url: '/sales-persons',
+                type: 'GET',
+                success: function(data) {
+                    window.salesPersons = data;
+                    console.log('SalesPersons loaded:', data);
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error loading SalesPersons:', error);
+                }
+            });
+        }
+
+        // Populate SalesPerson dropdown options
+        function populateSalesPersonDropdown(selectElement, selectedId = null) {
+            selectElement.innerHTML = '<option value="">Seleccione un vendedor</option>';
+
+            window.salesPersons.forEach(salesPerson => {
+                const option = document.createElement('option');
+                option.value = salesPerson.id;
+                option.textContent = salesPerson.name;
+                if (selectedId && salesPerson.id === selectedId) {
+                    option.selected = true;
+                }
+                selectElement.appendChild(option);
+            });
         }
     </script>
 }

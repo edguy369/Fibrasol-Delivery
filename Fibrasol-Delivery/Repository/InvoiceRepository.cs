@@ -32,8 +32,8 @@ public class InvoiceRepository : IInvoiceRepository
 
     public async Task<int> CreateAsync(InvoiceRequest request)
     {
-        const string query = "INSERT INTO Invoice (BackorderId, Address, Reference, Value, Attatchment, SignedAttatchment) " +
-            "VALUES (@pBackorderId, @pAddress, @pReference, @pValue, @pAttatchment, @pSignedAttatchment); SELECT LAST_INSERT_ID();";
+        const string query = "INSERT INTO Invoice (BackorderId, Address, Reference, Value, Attatchment, SignedAttatchment, SalesPersonId) " +
+            "VALUES (@pBackorderId, @pAddress, @pReference, @pValue, @pAttatchment, @pSignedAttatchment, @pSalesPersonId); SELECT LAST_INSERT_ID();";
         using var conn = new MySqlConnection(_connectionString);
         var transactionResult = await conn.ExecuteScalarAsync<int>(query, new
         {
@@ -42,7 +42,8 @@ public class InvoiceRepository : IInvoiceRepository
             pReference = request.Reference,
             pValue = request.Value,
             pAttatchment = request.Attatchment,
-            pSignedAttatchment = request.SignedAttatchment
+            pSignedAttatchment = request.SignedAttatchment,
+            pSalesPersonId = request.SalesPersonId
         });
         return transactionResult;
     }
@@ -61,7 +62,7 @@ public class InvoiceRepository : IInvoiceRepository
     public async Task<bool> UpdateAsync(int id, InvoiceRequest request)
     {
         const string query = "UPDATE Invoice SET Address = @pAddress, Reference = @pReference, Value = @pValue, Attatchment = @pAttatchment, " +
-            "SignedAttatchment = @pSignedAttatchment WHERE Id = @pId;";
+            "SignedAttatchment = @pSignedAttatchment, SalesPersonId = @pSalesPersonId WHERE Id = @pId;";
         using var conn = new MySqlConnection(_connectionString);
         var transactionResult = await conn.ExecuteAsync(query, new
         {
@@ -70,7 +71,8 @@ public class InvoiceRepository : IInvoiceRepository
             pReference = request.Reference,
             pValue = request.Value,
             pAttatchment = request.Attatchment,
-            pSignedAttatchment = request.SignedAttatchment
+            pSignedAttatchment = request.SignedAttatchment,
+            pSalesPersonId = request.SalesPersonId
         });
         return transactionResult != 0;
     }
