@@ -11,4 +11,5 @@ public interface ISalesPersonRepository
     Task<IEnumerable<SalesPersonModel>> GetAllAsync();
     Task<SalesPersonModel> GetByName(string name);
     Task<int> CountAsync();
+    Task<IEnumerable<SalesReportModel>> GetSalesReportAsync(DateTime startDate, DateTime endDate);
 }

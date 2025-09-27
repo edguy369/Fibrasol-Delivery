@@ -75,4 +75,43 @@ public class SalesPersonRepository : ISalesPersonRepository
         });
         return transactionResult != 0;
     }
+
+    public async Task<IEnumerable<SalesReportModel>> GetSalesReportAsync(DateTime startDate, DateTime endDate)
+    {
+        const string query = @"
+            SELECT
+                sp.Id,
+                sp.Name,
+                COALESCE(SUM(CASE
+                    WHEN do.Created >= @pStartDate AND do.Created <= @pEndDate
+                    THEN i.Value
+                    ELSE 0
+                END), 0) as TotalSales
+            FROM SalesPerson sp
+            LEFT JOIN Invoice i ON sp.Id = i.SalesPersonId
+            LEFT JOIN BackOrder bo ON i.BackorderId = bo.Id
+            LEFT JOIN DeliveryOrder do ON bo.DeliveryOrderId = do.Id
+            GROUP BY sp.Id, sp.Name
+            ORDER BY TotalSales DESC;";
+
+        using var conn = new MySqlConnection(_connectionString);
+
+        var result = await conn.QueryAsync<dynamic>(query, new
+        {
+            pStartDate = startDate.Date,
+            pEndDate = endDate.Date.AddDays(1).AddTicks(-1) // End of day
+        });
+
+        var salesReport = result.Select(row => new SalesReportModel
+        {
+            SalesPerson = new SalesPersonModel
+            {
+                Id = (int)row.Id,
+                Name = (string)row.Name
+            },
+            TotalSales = (double)(row.TotalSales ?? 0)
+        });
+
+        return salesReport;
+    }
 }
