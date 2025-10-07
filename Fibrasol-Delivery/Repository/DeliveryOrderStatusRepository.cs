@@ -10,49 +10,39 @@ namespace Fibrasol_Delivery.Repository;
 public class DeliveryOrderStatusRepository : IDeliveryOrderStatusRepository
 {
     private readonly string _connectionString;
+
     public DeliveryOrderStatusRepository(ConnectionString connectionString)
     {
         _connectionString = connectionString.Value;
     }
+
     public async Task<int> CreateAsync(DeliveryOrderStatusRequest request)
     {
-        const string query = "INSERT INTO DeliveryOrderStatus (Name) VALUES (@pName); SELECT LAST_INSERT_ID();";
+        const string query = "INSERT INTO DeliveryOrderStatus (Name) VALUES (@Name); SELECT LAST_INSERT_ID()";
         using var conn = new MySqlConnection(_connectionString);
-        var transactionResult = await conn.ExecuteScalarAsync<int>(query, new
-        {
-            pName = request.Name
-        });
-        return transactionResult;
+        return await conn.ExecuteScalarAsync<int>(query, new { request.Name });
     }
 
     public async Task<bool> DeleteAsync(int id)
     {
-        const string query = "DELETE FROM DeliveryOrderStatus WHERE Id = @pId;";
+        const string query = "DELETE FROM DeliveryOrderStatus WHERE Id = @Id";
         using var conn = new MySqlConnection(_connectionString);
-        var transactionResult = await conn.ExecuteAsync(query, new
-        {
-            pId = id
-        });
-        return transactionResult != 0;
+        var result = await conn.ExecuteAsync(query, new { Id = id });
+        return result > 0;
     }
 
     public async Task<IEnumerable<DeliveryOrderStatusModel>> GetAllAsync()
     {
-        const string query = "SELECT * FROM DeliveryOrderStatus;";
+        const string query = "SELECT * FROM DeliveryOrderStatus";
         using var conn = new MySqlConnection(_connectionString);
-        var transactionResult = await conn.QueryAsync<DeliveryOrderStatusModel>(query);
-        return transactionResult;
+        return await conn.QueryAsync<DeliveryOrderStatusModel>(query);
     }
 
     public async Task<bool> UpdateAsync(int id, DeliveryOrderStatusRequest request)
     {
-        const string query = "UPDATE DeliveryOrderStatus SET Name = @pName WHERE Id = @pId;";
+        const string query = "UPDATE DeliveryOrderStatus SET Name = @Name WHERE Id = @Id";
         using var conn = new MySqlConnection(_connectionString);
-        var transactionResult = await conn.ExecuteAsync(query, new
-        {
-            pId = id,
-            pName = request.Name
-        });
-        return transactionResult != 0;
+        var result = await conn.ExecuteAsync(query, new { Id = id, request.Name });
+        return result > 0;
     }
 }
