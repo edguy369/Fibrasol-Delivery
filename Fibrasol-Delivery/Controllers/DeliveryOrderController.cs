@@ -11,10 +11,13 @@ public class DeliveryOrderController : Controller
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly IDoSpaces _doSpaces;
-    public DeliveryOrderController(IUnitOfWork unitOfWork, IDoSpaces doSpaces)
+    private readonly ILogger<DeliveryOrderController> _logger;
+
+    public DeliveryOrderController(IUnitOfWork unitOfWork, IDoSpaces doSpaces, ILogger<DeliveryOrderController> logger)
     {
         _unitOfWork = unitOfWork;
         _doSpaces = doSpaces;
+        _logger = logger;
     }
 
     #region Views
@@ -42,40 +45,85 @@ public class DeliveryOrderController : Controller
     [Route("delivery-orders")]
     public async Task<IActionResult> GetAllAsync()
     {
-        var deliveryOrderList = await _unitOfWork.DeliveryOrders.GetAllAsync();
-        return Ok(deliveryOrderList);
+        try
+        {
+            _logger.LogInformation("Retrieving all delivery orders");
+            var deliveryOrderList = await _unitOfWork.DeliveryOrders.GetAllAsync();
+            _logger.LogInformation("Successfully retrieved {Count} delivery orders", deliveryOrderList.Count());
+            return Ok(deliveryOrderList);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while retrieving all delivery orders");
+            return StatusCode(500, "An error occurred while processing your request.");
+        }
     }
 
     [HttpGet]
     [Route("delivery-orders/unsigned")]
     public async Task<IActionResult> GetAllUnsignedAsync()
     {
-        var deliveryOrderList = await _unitOfWork.DeliveryOrders.GetAllUnsignedAsync();
-        return Ok(deliveryOrderList);
+        try
+        {
+            _logger.LogInformation("Retrieving all unsigned delivery orders");
+            var deliveryOrderList = await _unitOfWork.DeliveryOrders.GetAllUnsignedAsync();
+            _logger.LogInformation("Successfully retrieved {Count} unsigned delivery orders", deliveryOrderList.Count());
+            return Ok(deliveryOrderList);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while retrieving unsigned delivery orders");
+            return StatusCode(500, "An error occurred while processing your request.");
+        }
     }
 
     [HttpGet]
     [Route("delivery-orders/{id}")]
     public async Task<IActionResult> GetAsyncById(int id)
     {
-        if (id == 0)
+        try
         {
-            return Ok(null);
+            if (id == 0)
+            {
+                _logger.LogWarning("Attempted to retrieve delivery order with ID 0");
+                return Ok(null);
+            }
+
+            _logger.LogInformation("Retrieving delivery order with ID: {Id}", id);
+            var deliveryOrder = await _unitOfWork.DeliveryOrders.GetByIdAsync(id);
+            _logger.LogInformation("Successfully retrieved delivery order with ID: {Id}", id);
+            return Ok(deliveryOrder);
         }
-        
-        var deliveryOrder = await _unitOfWork.DeliveryOrders.GetByIdAsync(id);
-        return Ok(deliveryOrder);
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while retrieving delivery order with ID: {Id}", id);
+            return StatusCode(500, "An error occurred while processing your request.");
+        }
     }
 
     [HttpPost]
     [Route("delivery-orders")]
     public async Task<IActionResult> CreateAsync([FromBody] DeliveryOrderRequest request)
     {
-        var transactionResult = await _unitOfWork.DeliveryOrders.CreateAsync(request);
-        if (transactionResult == 0)
-            return BadRequest();
+        try
+        {
+            _logger.LogInformation("Creating new delivery order");
+            var transactionResult = await _unitOfWork.DeliveryOrders.CreateAsync(request);
 
-        return Ok(transactionResult);
+            if (transactionResult == 0)
+            {
+                _logger.LogWarning("Failed to create delivery order");
+                return BadRequest();
+            }
+
+            _logger.LogInformation("Successfully created delivery order with ID: {Id}", transactionResult);
+            return Ok(transactionResult);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while creating delivery order");
+            return StatusCode(500, "An error occurred while processing your request.");
+        }
     }
 
     [HttpPut]
@@ -84,15 +132,26 @@ public class DeliveryOrderController : Controller
     {
         try
         {
+            _logger.LogInformation("Updating delivery order with ID: {Id}", id);
+
             if (request == null)
+            {
+                _logger.LogWarning("Update request is null for delivery order ID: {Id}", id);
                 return BadRequest("Request cannot be null");
+            }
 
             if (id <= 0)
+            {
+                _logger.LogWarning("Invalid delivery order ID: {Id}", id);
                 return BadRequest("Invalid delivery order ID");
+            }
 
             var transactionResult = await _unitOfWork.DeliveryOrders.UpdateAsync(id, request);
             if (!transactionResult)
+            {
+                _logger.LogWarning("Failed to update delivery order with ID: {Id}", id);
                 return BadRequest("Failed to update delivery order");
+            }
 
         //AGREGAR DRIVERS
         if (request.Riders != null && request.Riders.Count > 0)
@@ -195,12 +254,13 @@ public class DeliveryOrderController : Controller
             }
         }
 
+            _logger.LogInformation("Successfully updated delivery order with ID: {Id}", id);
             return Ok();
         }
         catch (Exception ex)
         {
-            // Log the exception here if you have logging configured
-            return StatusCode(500, $"Internal server error: {ex.Message}");
+            _logger.LogError(ex, "An error occurred while updating delivery order with ID: {Id}", id);
+            return StatusCode(500, "An error occurred while processing your request.");
         }
     }
 
@@ -208,11 +268,25 @@ public class DeliveryOrderController : Controller
     [Route("delivery-orders/{id}")]
     public async Task<IActionResult> DeleteAsync(int id)
     {
-        var transactionResult = await _unitOfWork.DeliveryOrders.DeleteAsync(id);
-        if (!transactionResult)
-            return BadRequest();
+        try
+        {
+            _logger.LogInformation("Deleting delivery order with ID: {Id}", id);
+            var transactionResult = await _unitOfWork.DeliveryOrders.DeleteAsync(id);
 
-        return Ok();
+            if (!transactionResult)
+            {
+                _logger.LogWarning("Failed to delete delivery order with ID: {Id}", id);
+                return BadRequest();
+            }
+
+            _logger.LogInformation("Successfully deleted delivery order with ID: {Id}", id);
+            return Ok();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while deleting delivery order with ID: {Id}", id);
+            return StatusCode(500, "An error occurred while processing your request.");
+        }
     }
     #endregion
 }

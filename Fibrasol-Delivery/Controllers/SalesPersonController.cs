@@ -9,9 +9,12 @@ namespace Fibrasol_Delivery.Controllers;
 public class SalesPersonController : Controller
 {
     private readonly IUnitOfWork _unitOfWork;
-    public SalesPersonController(IUnitOfWork unitOfWork)
+    private readonly ILogger<SalesPersonController> _logger;
+
+    public SalesPersonController(IUnitOfWork unitOfWork, ILogger<SalesPersonController> logger)
     {
         _unitOfWork = unitOfWork;
+        _logger = logger;
     }
 
     #region Views
@@ -33,41 +36,93 @@ public class SalesPersonController : Controller
     [Route("sales-persons")]
     public async Task<IActionResult> GetAllAsync()
     {
-        var salesPersonList = await _unitOfWork.SalesPersons.GetAllAsync();
-        return Ok(salesPersonList);
+        try
+        {
+            _logger.LogInformation("Retrieving all sales persons");
+            var salesPersonList = await _unitOfWork.SalesPersons.GetAllAsync();
+            _logger.LogInformation("Successfully retrieved {Count} sales persons", salesPersonList.Count());
+            return Ok(salesPersonList);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while retrieving all sales persons");
+            return StatusCode(500, "An error occurred while processing your request.");
+        }
     }
 
     [HttpPost]
     [Route("sales-persons")]
     public async Task<IActionResult> CreateAsync([FromBody] SalesPersonRequest request)
     {
-        var transactionResult = await _unitOfWork.SalesPersons.CreateAsync(request);
-        if (transactionResult == 0)
-            return BadRequest();
+        try
+        {
+            _logger.LogInformation("Creating new sales person with name: {Name}", request.Name);
+            var transactionResult = await _unitOfWork.SalesPersons.CreateAsync(request);
 
-        return Ok();
+            if (transactionResult == 0)
+            {
+                _logger.LogWarning("Failed to create sales person: {Name}", request.Name);
+                return BadRequest();
+            }
+
+            _logger.LogInformation("Successfully created sales person with ID: {Id}", transactionResult);
+            return Ok();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while creating sales person: {Name}", request.Name);
+            return StatusCode(500, "An error occurred while processing your request.");
+        }
     }
 
     [HttpPut]
     [Route("sales-persons/{id}")]
     public async Task<IActionResult> UpdateAsync(int id, [FromBody] SalesPersonRequest request)
     {
-        var transactionResult = await _unitOfWork.SalesPersons.UpdateAsync(id, request);
-        if (!transactionResult)
-            return BadRequest();
+        try
+        {
+            _logger.LogInformation("Updating sales person with ID: {Id}", id);
+            var transactionResult = await _unitOfWork.SalesPersons.UpdateAsync(id, request);
 
-        return Ok();
+            if (!transactionResult)
+            {
+                _logger.LogWarning("Failed to update sales person with ID: {Id}", id);
+                return BadRequest();
+            }
+
+            _logger.LogInformation("Successfully updated sales person with ID: {Id}", id);
+            return Ok();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while updating sales person with ID: {Id}", id);
+            return StatusCode(500, "An error occurred while processing your request.");
+        }
     }
 
     [HttpDelete]
     [Route("sales-persons/{id}")]
     public async Task<IActionResult> DeleteAsync(int id)
     {
-        var transactionResult = await _unitOfWork.SalesPersons.DeleteAsync(id);
-        if (!transactionResult)
-            return BadRequest();
+        try
+        {
+            _logger.LogInformation("Deleting sales person with ID: {Id}", id);
+            var transactionResult = await _unitOfWork.SalesPersons.DeleteAsync(id);
 
-        return Ok();
+            if (!transactionResult)
+            {
+                _logger.LogWarning("Failed to delete sales person with ID: {Id}", id);
+                return BadRequest();
+            }
+
+            _logger.LogInformation("Successfully deleted sales person with ID: {Id}", id);
+            return Ok();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while deleting sales person with ID: {Id}", id);
+            return StatusCode(500, "An error occurred while processing your request.");
+        }
     }
 
     [HttpPost]
@@ -82,26 +137,29 @@ public class SalesPersonController : Controller
                 var now = DateTime.Now;
                 request = new SalesReportRequest
                 {
-                    StartDate = new DateTime(now.Year, now.Month, 1), // First day of current month
-                    EndDate = new DateTime(now.Year, now.Month, DateTime.DaysInMonth(now.Year, now.Month)) // Last day of current month
+                    StartDate = new DateTime(now.Year, now.Month, 1),
+                    EndDate = new DateTime(now.Year, now.Month, DateTime.DaysInMonth(now.Year, now.Month))
                 };
+                _logger.LogInformation("No date range provided, using current month: {Start} to {End}", request.StartDate, request.EndDate);
             }
 
             // Validate the date range
             if (request.StartDate > request.EndDate)
             {
+                _logger.LogWarning("Invalid date range: StartDate {Start} is greater than EndDate {End}", request.StartDate, request.EndDate);
                 return BadRequest("Start date cannot be greater than end date.");
             }
 
-            // Call the repository method to get the sales report
+            _logger.LogInformation("Generating sales report from {Start} to {End}", request.StartDate, request.EndDate);
             var salesReport = await _unitOfWork.SalesPersons.GetSalesReportAsync(request.StartDate, request.EndDate);
+            _logger.LogInformation("Successfully generated sales report with {Count} entries", salesReport.Count());
 
             return Ok(salesReport);
         }
         catch (Exception ex)
         {
-            // Log the exception here if you have logging configured
-            return StatusCode(500, $"Internal server error: {ex.Message}");
+            _logger.LogError(ex, "An error occurred while generating sales report");
+            return StatusCode(500, "An error occurred while processing your request.");
         }
     }
     #endregion
