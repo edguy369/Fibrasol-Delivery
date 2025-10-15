@@ -12,20 +12,14 @@ $(document).ready(function() {
                 data: null,
                 orderable: false,
                 render: function(data, type, row) {
-                    return '<button type="button" class="btn btn-edit btn-sm me-1" onclick="editClient(' + row.id + ', \'' + row.name.replace(/'/g, "\\'") + '\')">' +
-                           '<i class="bi bi-pencil"></i>' +
-                           '</button>' +
-                           '<button type="button" class="btn btn-delete btn-sm" onclick="deleteClient(' + row.id + ')">' +
-                           '<i class="bi bi-trash"></i>' +
-                           '</button>';
+                    return FibrasolUtils.datatables.createActionButtons(row.id, row.name, {
+                        editFn: 'editClient',
+                        deleteFn: 'deleteClient'
+                    });
                 }
             }
         ],
-        language: {
-            url: 'https://cdn.datatables.net/plug-ins/1.13.7/i18n/es-ES.json'
-        },
-        pageLength: 10,
-        responsive: true,
+        ...FibrasolUtils.datatables.getSpanishConfig(),
         order: [[0, 'asc']]
     });
 });
@@ -41,23 +35,18 @@ function editClient(id, name) {
     document.getElementById('clientId').value = id;
     document.getElementById('clientName').value = name;
 
-    var modal = new bootstrap.Modal(document.getElementById('clientModal'));
-    modal.show();
+    FibrasolUtils.ui.showModal('clientModal');
 }
 
 function deleteClient(id) {
     if (confirm('¿Está seguro de que desea eliminar este cliente?')) {
-        $.ajax({
+        FibrasolUtils.api.ajax({
             url: '/clients/' + id,
             type: 'DELETE',
-            contentType: 'application/json',
             data: JSON.stringify({}),
             success: function(response) {
-                // Show success message
-                showSuccessMessage('Cliente eliminado correctamente');
-
-                // Reload DataTable
-                $('#clientsTable').DataTable().ajax.reload();
+                FibrasolUtils.ui.showSuccessMessage('Cliente eliminado correctamente');
+                FibrasolUtils.datatables.reloadTable('clientsTable');
             },
             error: function(xhr, status, error) {
                 console.error('Error deleting client:', error);
@@ -68,102 +57,35 @@ function deleteClient(id) {
 }
 
 function saveClient() {
-    var id = document.getElementById('clientId').value;
-    var name = document.getElementById('clientName').value.trim();
+    const id = document.getElementById('clientId').value;
+    const name = document.getElementById('clientName').value.trim();
 
     if (!name) {
         alert('Por favor, ingrese el nombre del cliente.');
         return;
     }
 
-    // Disable save button to prevent multiple clicks
-    var saveButton = document.querySelector('#clientModal .btn-primary-custom');
-    var originalText = saveButton.innerHTML;
-    saveButton.disabled = true;
-    saveButton.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Guardando...';
+    const saveButton = document.querySelector('#clientModal .btn-primary-custom');
+    FibrasolUtils.ui.setButtonLoading(saveButton);
 
-    if (id) {
-        // Update existing client
-        updateClient(id, name, saveButton, originalText);
-    } else {
-        // Create new client
-        createClient(name, saveButton, originalText);
-    }
-}
+    const data = { Name: name };
+    const isUpdate = !!id;
 
-function createClient(name, saveButton, originalText) {
-    $.ajax({
-        url: '/clients',
-        type: 'POST',
-        contentType: 'application/json',
-        data: JSON.stringify({
-            Name: name
-        }),
+    FibrasolUtils.api.ajax({
+        url: isUpdate ? `/clients/${id}` : '/clients',
+        type: isUpdate ? 'PUT' : 'POST',
+        data: JSON.stringify(data),
         success: function(response) {
-            // Close modal and reload page
-            var modal = bootstrap.Modal.getInstance(document.getElementById('clientModal'));
-            modal.hide();
-
-            // Show success message
-            showSuccessMessage('Cliente creado correctamente');
-
-            // Reload DataTable
-            $('#clientsTable').DataTable().ajax.reload();
+            FibrasolUtils.ui.hideModal('clientModal');
+            FibrasolUtils.ui.showSuccessMessage(isUpdate ? 'Cliente actualizado correctamente' : 'Cliente creado correctamente');
+            FibrasolUtils.datatables.reloadTable('clientsTable');
         },
         error: function(xhr, status, error) {
-            console.error('Error creating client:', error);
-            alert('Error al crear el cliente. Por favor, inténtelo de nuevo.');
+            console.error(`Error ${isUpdate ? 'updating' : 'creating'} client:`, error);
+            alert(`Error al ${isUpdate ? 'actualizar' : 'crear'} el cliente. Por favor, inténtelo de nuevo.`);
         },
         complete: function() {
-            // Re-enable save button
-            saveButton.disabled = false;
-            saveButton.innerHTML = originalText;
+            FibrasolUtils.ui.setButtonLoading(saveButton, false);
         }
     });
-}
-
-function updateClient(id, name, saveButton, originalText) {
-    $.ajax({
-        url: '/clients/' + id,
-        type: 'PUT',
-        contentType: 'application/json',
-        data: JSON.stringify({
-            Name: name
-        }),
-        success: function(response) {
-            // Close modal and reload page
-            var modal = bootstrap.Modal.getInstance(document.getElementById('clientModal'));
-            modal.hide();
-
-            // Show success message
-            showSuccessMessage('Cliente actualizado correctamente');
-
-            // Reload DataTable
-            $('#clientsTable').DataTable().ajax.reload();
-        },
-        error: function(xhr, status, error) {
-            console.error('Error updating client:', error);
-            alert('Error al actualizar el cliente. Por favor, inténtelo de nuevo.');
-        },
-        complete: function() {
-            // Re-enable save button
-            saveButton.disabled = false;
-            saveButton.innerHTML = originalText;
-        }
-    });
-}
-
-function showSuccessMessage(message) {
-    // Create and show a temporary success alert
-    var alertHtml = '<div class="alert alert-success alert-dismissible fade show" role="alert">' +
-                   '<i class="bi bi-check-circle me-2"></i>' + message +
-                   '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>' +
-                   '</div>';
-
-    $('.page-header').after(alertHtml);
-
-    // Auto-dismiss after 3 seconds
-    setTimeout(function() {
-        $('.alert-success').fadeOut();
-    }, 3000);
 }

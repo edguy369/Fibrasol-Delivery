@@ -12,20 +12,14 @@ $(document).ready(function() {
                 data: null,
                 orderable: false,
                 render: function(data, type, row) {
-                    return '<button type="button" class="btn btn-edit btn-sm me-1" onclick="editDeliveryStatus(' + row.id + ', \'' + row.name.replace(/'/g, "\\'") + '\')">' +
-                           '<i class="bi bi-pencil"></i>' +
-                           '</button>' +
-                           '<button type="button" class="btn btn-delete btn-sm" onclick="deleteDeliveryStatus(' + row.id + ')">' +
-                           '<i class="bi bi-trash"></i>' +
-                           '</button>';
+                    return FibrasolUtils.datatables.createActionButtons(row.id, row.name, {
+                        editFn: 'editDeliveryStatus',
+                        deleteFn: 'deleteDeliveryStatus'
+                    });
                 }
             }
         ],
-        language: {
-            url: 'https://cdn.datatables.net/plug-ins/1.13.7/i18n/es-ES.json'
-        },
-        pageLength: 10,
-        responsive: true,
+        ...FibrasolUtils.datatables.getSpanishConfig(),
         order: [[0, 'asc']]
     });
 });
@@ -41,22 +35,17 @@ function editDeliveryStatus(id, name) {
     document.getElementById('deliveryStatusId').value = id;
     document.getElementById('deliveryStatusName').value = name;
 
-    var modal = new bootstrap.Modal(document.getElementById('deliveryStatusModal'));
-    modal.show();
+    FibrasolUtils.ui.showModal('deliveryStatusModal');
 }
 
 function deleteDeliveryStatus(id) {
     if (confirm('¿Está seguro de que desea eliminar este estado de entrega?')) {
-        $.ajax({
+        FibrasolUtils.api.ajax({
             url: '/delivery-statuses/' + id,
             type: 'DELETE',
-            contentType: 'application/json',
             success: function(response) {
-                // Show success message
-                showSuccessMessage('Estado eliminado correctamente');
-
-                // Reload DataTable
-                $('#deliveryStatusesTable').DataTable().ajax.reload();
+                FibrasolUtils.ui.showSuccessMessage('Estado eliminado correctamente');
+                FibrasolUtils.datatables.reloadTable('deliveryStatusesTable');
             },
             error: function(xhr, status, error) {
                 console.error('Error deleting delivery status:', error);
@@ -67,102 +56,35 @@ function deleteDeliveryStatus(id) {
 }
 
 function saveDeliveryStatus() {
-    var id = document.getElementById('deliveryStatusId').value;
-    var name = document.getElementById('deliveryStatusName').value.trim();
+    const id = document.getElementById('deliveryStatusId').value;
+    const name = document.getElementById('deliveryStatusName').value.trim();
 
     if (!name) {
         alert('Por favor, ingrese el nombre del estado.');
         return;
     }
 
-    // Disable save button to prevent multiple clicks
-    var saveButton = document.querySelector('#deliveryStatusModal .btn-primary-custom');
-    var originalText = saveButton.innerHTML;
-    saveButton.disabled = true;
-    saveButton.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Guardando...';
+    const saveButton = document.querySelector('#deliveryStatusModal .btn-primary-custom');
+    FibrasolUtils.ui.setButtonLoading(saveButton);
 
-    if (id) {
-        // Update existing delivery status
-        updateDeliveryStatus(id, name, saveButton, originalText);
-    } else {
-        // Create new delivery status
-        createDeliveryStatus(name, saveButton, originalText);
-    }
-}
+    const data = { Name: name };
+    const isUpdate = !!id;
 
-function createDeliveryStatus(name, saveButton, originalText) {
-    $.ajax({
-        url: '/delivery-statuses',
-        type: 'POST',
-        contentType: 'application/json',
-        data: JSON.stringify({
-            Name: name
-        }),
+    FibrasolUtils.api.ajax({
+        url: isUpdate ? `/delivery-statuses/${id}` : '/delivery-statuses',
+        type: isUpdate ? 'PUT' : 'POST',
+        data: JSON.stringify(data),
         success: function(response) {
-            // Close modal and reload page
-            var modal = bootstrap.Modal.getInstance(document.getElementById('deliveryStatusModal'));
-            modal.hide();
-
-            // Show success message
-            showSuccessMessage('Estado creado correctamente');
-
-            // Reload DataTable
-            $('#deliveryStatusesTable').DataTable().ajax.reload();
+            FibrasolUtils.ui.hideModal('deliveryStatusModal');
+            FibrasolUtils.ui.showSuccessMessage(isUpdate ? 'Estado actualizado correctamente' : 'Estado creado correctamente');
+            FibrasolUtils.datatables.reloadTable('deliveryStatusesTable');
         },
         error: function(xhr, status, error) {
-            console.error('Error creating delivery status:', error);
-            alert('Error al crear el estado. Por favor, inténtelo de nuevo.');
+            console.error(`Error ${isUpdate ? 'updating' : 'creating'} delivery status:`, error);
+            alert(`Error al ${isUpdate ? 'actualizar' : 'crear'} el estado. Por favor, inténtelo de nuevo.`);
         },
         complete: function() {
-            // Re-enable save button
-            saveButton.disabled = false;
-            saveButton.innerHTML = originalText;
+            FibrasolUtils.ui.setButtonLoading(saveButton, false);
         }
     });
-}
-
-function updateDeliveryStatus(id, name, saveButton, originalText) {
-    $.ajax({
-        url: '/delivery-statuses/' + id,
-        type: 'PUT',
-        contentType: 'application/json',
-        data: JSON.stringify({
-            Name: name
-        }),
-        success: function(response) {
-            // Close modal and reload page
-            var modal = bootstrap.Modal.getInstance(document.getElementById('deliveryStatusModal'));
-            modal.hide();
-
-            // Show success message
-            showSuccessMessage('Estado actualizado correctamente');
-
-            // Reload DataTable
-            $('#deliveryStatusesTable').DataTable().ajax.reload();
-        },
-        error: function(xhr, status, error) {
-            console.error('Error updating delivery status:', error);
-            alert('Error al actualizar el estado. Por favor, inténtelo de nuevo.');
-        },
-        complete: function() {
-            // Re-enable save button
-            saveButton.disabled = false;
-            saveButton.innerHTML = originalText;
-        }
-    });
-}
-
-function showSuccessMessage(message) {
-    // Create and show a temporary success alert
-    var alertHtml = '<div class="alert alert-success alert-dismissible fade show" role="alert">' +
-                   '<i class="bi bi-check-circle me-2"></i>' + message +
-                   '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>' +
-                   '</div>';
-
-    $('.page-header').after(alertHtml);
-
-    // Auto-dismiss after 3 seconds
-    setTimeout(function() {
-        $('.alert-success').fadeOut();
-    }, 3000);
 }
