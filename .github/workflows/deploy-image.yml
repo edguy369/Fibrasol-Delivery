@@ -1,0 +1,75 @@
+name: Build & Publish To Server
+on:
+  push:
+    branches: [ master ]
+    
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+      
+    - name: Login to DockerHub
+      uses: docker/login-action@v1 
+      with:
+          username: ${{ secrets.DOCKER_USER }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+          logout: true
+          
+    - name: Extract metadata (tags, labels) for Docker Landing
+      id: meta
+      uses: docker/metadata-action@v3
+      with:
+          images: tipicode/fibrasol.delivery
+          
+    - name: Build and push API
+      id: docker_build
+      uses: docker/build-push-action@v2
+      with:
+          context: .
+          file: ./Fibrasol-Delivery/Dockerfile
+          push: true
+          tags: tipicode/fibrasol.delivery:latest
+    
+  deploy: 
+    runs-on: self-hosted
+    needs: publish
+    
+    steps: 
+      - name: Clean Container
+        run: |
+          docker stop fibrasol-delivery || true
+          docker rm fibrasol-delivery || true
+          
+      - name: Checkout files
+        uses: Bhacaz/checkout-files@v2
+        with:
+         files: docker-compose.yml
+        
+      - name: Create .Env File
+        uses: SpicyPizza/create-envfile@v1
+        with:
+          envkey_MYSQL_HOST : ${{secrets.MYSQL_HOST}}
+          envkey_MYSQL_PORT : ${{secrets.MYSQL_PORT}}
+          envkey_MYSQL_DATABASE : ${{secrets.MYSQL_DATABASE}}
+          envkey_MYSQL_USER : ${{secrets.MYSQL_USER}}
+          envkey_MYSQL_PASSWORD : ${{secrets.MYSQL_PASSWORD}}
+          envkey_S3_SECRET_KEY : ${{secrets.S3_SECRET_KEY}}
+          envkey_S3_ROOT : ${{secrets.S3_ROOT}}
+          envkey_S3_ENDPOINT_URL : ${{secrets.S3_ENDPOINT_URL}}
+          envkey_S3_REGION : ${{secrets.S3_REGION}}
+          envkey_S3_BUCKET_NAME : ${{secrets.S3_BUCKET_NAME}}
+          envkey_S3_CDN : ${{secrets.S3_CDN}}
+          envkey_S3_ACESS_KEY : ${{secrets.S3_ACESS_KEY}}
+
+          
+      - name: Login To Docker Hub
+        run: echo "${{secrets.DOCKER_PASSWORD}}" | docker login -u "${{secrets.DOCKER_USER}}" --password-stdin
+
+      - name: Pull New Image
+        run: docker pull tipicode/fibrasol.delivery:latest
+        
+      - name: Compose
+        run: docker-compose --env-file .env up -d
