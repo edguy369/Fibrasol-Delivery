@@ -1,0 +1,25 @@
+version: "3.8"
+
+services:
+    fibrasol-delivery:
+        image: tipicode/fibrasol.delivery:latest
+        container_name: fibrasol-delivery
+        restart: always
+        env_file:
+            - .env
+        ports:
+            - "5002:5002"
+        environment:
+            - ConnectionString=Server=${MYSQL_HOST};port=${MYSQL_PORT};Database=${MYSQL_DATABASE}; Uid=${MYSQL_USER}; Pwd=${MYSQL_PASSWORD};
+            - S3Config:SecretKey=${S3_SECRET_KEY}
+            - S3Config:AccessKey=${S3_ACESS_KEY}
+            - S3Config:Root=${S3_ROOT}
+            - S3Config:EndpointUrl=${S3_ENDPOINT_URL}
+            - S3Config:Region=${S3_REGION}
+            - S3Config:BucketName=${S3_BUCKET_NAME}
+            - S3Config:UseCdn=${S3_CDN}
+        deploy:
+            replicas: 1
+            resources:
+                limits:
+                    memory: 100m
