@@ -35,7 +35,7 @@ public class AuthController : Controller
         if (user == null)
             return Unauthorized();
 
-        var result = await _signInManager.PasswordSignInAsync(user.UserName, request.Password, true, false);
+        var result = await _signInManager.PasswordSignInAsync(user.UserName!, request.Password, true, false);
         if (!result.Succeeded)
             return Unauthorized();
 

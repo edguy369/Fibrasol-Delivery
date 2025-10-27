@@ -61,7 +61,7 @@ public class ClientRepository : IClientRepository
         new {
             pName = name
         });
-        return transactionResult;
+        return transactionResult!;
     }
 
     public async Task<bool> UpdateAsync(int id, ClientRequest request)

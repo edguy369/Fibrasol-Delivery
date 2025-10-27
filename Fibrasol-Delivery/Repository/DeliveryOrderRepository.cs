@@ -141,7 +141,7 @@ public class DeliveryOrderRepository : IDeliveryOrderRepository
             pId = id
         },
         splitOn: "StatusId,RiderAssignationId,BackorderId,ClientId,InvoiceId,SalesPersonId");
-        return transactionResult.Distinct().FirstOrDefault();
+        return transactionResult.Distinct().FirstOrDefault()!;
     }
 
     public async Task<bool> UpdateAsync(int id, DeliveryOrderCompleteRequest request)

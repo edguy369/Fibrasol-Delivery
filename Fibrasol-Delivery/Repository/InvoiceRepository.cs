@@ -49,9 +49,9 @@ public class InvoiceRepository : IInvoiceRepository
             });
             return transactionResult;
         }
-        catch (Exception e)
+        catch (Exception)
         {
-            throw e;
+            throw;
         }
         
     }

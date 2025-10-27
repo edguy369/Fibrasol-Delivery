@@ -61,7 +61,7 @@ public class SalesPersonRepository : ISalesPersonRepository
         new {
             pName = name
         });
-        return transactionResult;
+        return transactionResult!;
     }
 
     public async Task<bool> UpdateAsync(int id, SalesPersonRequest request)
