@@ -543,9 +543,9 @@
 
 @section Scripts {
     <!-- DataTables CSS and JS -->
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
-    <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+    <link rel="stylesheet" href="~/lib/datatables/css/dataTables.bootstrap5.min.css">
+    <script src="~/lib/datatables/js/jquery.dataTables.min.js"></script>
+    <script src="~/lib/datatables/js/dataTables.bootstrap5.min.js"></script>
 
     <script>
         // DataTable initialization for unsigned delivery orders
@@ -619,7 +619,7 @@
                 },
                 columns: getUnsignedOrdersTableColumns(),
                 language: {
-                    url: 'https://cdn.datatables.net/plug-ins/1.13.7/i18n/es-ES.json',
+                    url: '/lib/datatables/i18n/es-ES.json',
                     loadingRecords: 'Cargando órdenes pendientes...',
                     emptyTable: 'No hay órdenes pendientes de firma',
                     zeroRecords: 'No hay órdenes pendientes de firma'
@@ -638,7 +638,7 @@
                 data: [],
                 columns: getUnsignedOrdersTableColumns(),
                 language: {
-                    url: 'https://cdn.datatables.net/plug-ins/1.13.7/i18n/es-ES.json',
+                    url: '/lib/datatables/i18n/es-ES.json',
                     emptyTable: 'No hay órdenes pendientes de firma',
                     zeroRecords: 'No hay órdenes pendientes de firma'
                 },
