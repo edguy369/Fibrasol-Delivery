@@ -3,6 +3,7 @@ using Fibrasol_Delivery.Config;
 using Fibrasol_Delivery.Repository.Abstract;
 using Fibrasol_Delivery.Request;
 using MySql.Data.MySqlClient;
+using System.Data;
 
 namespace Fibrasol_Delivery.Repository;
 
@@ -13,44 +14,46 @@ public class BackOrderRepository : IBackOrderRepository
     {
         _connectionString = connectionString.Value;
     }
+
     public async Task<int> CreateAsync(BackOrderRequest request)
     {
-        const string query = "INSERT INTO BackOrder (ClientId, DeliveryOrderId, Number, Weight) " +
-            "VALUES (@pClientId, @pDeliveryOrderId, @pNumber, @pWeight); SELECT LAST_INSERT_ID();";
         using var conn = new MySqlConnection(_connectionString);
-        var transactionResult = await conn.ExecuteScalarAsync<int>(query, new
-        {
-            pClientId = request.ClientId,
-            pDeliveryOrderId = request.OrderId,
-            pNumber = request.Number,
-            pWeight = request.Weight
-        });
+        var transactionResult = await conn.ExecuteScalarAsync<int>(
+            "sp_BackOrder_Create",
+            new
+            {
+                pClientId = request.ClientId,
+                pDeliveryOrderId = request.OrderId,
+                pNumber = request.Number,
+                pWeight = request.Weight
+            },
+            commandType: CommandType.StoredProcedure);
         return transactionResult;
     }
 
     public async Task<bool> DeleteAsync(int id)
     {
-        const string query = "DELETE FROM BackOrder WHERE Id = @pId;";
         using var conn = new MySqlConnection(_connectionString);
-        var transactionResult = await conn.ExecuteAsync(query, new
-        {
-            pId = id
-        });
-        return transactionResult != 0;
+        var result = await conn.QueryFirstOrDefaultAsync<int>(
+            "sp_BackOrder_Delete",
+            new { pId = id },
+            commandType: CommandType.StoredProcedure);
+        return result != 0;
     }
 
     public async Task<bool> UpdateAsync(int id, BackOrderRequest request)
     {
-        const string query = "UPDATE BackOrder SET ClientId = @pClientId, Number = @pNumber, Weight = @pWeight " +
-            "WHERE Id = @pId";
         using var conn = new MySqlConnection(_connectionString);
-        var transactionResult = await conn.ExecuteAsync(query, new
-        {
-            pId = id,
-            pNumber = request.Number,
-            pClientId = request.ClientId,
-            pWeight = request.Weight
-        });
-        return transactionResult != 0;
+        var result = await conn.QueryFirstOrDefaultAsync<int>(
+            "sp_BackOrder_Update",
+            new
+            {
+                pId = id,
+                pClientId = request.ClientId,
+                pNumber = request.Number,
+                pWeight = request.Weight
+            },
+            commandType: CommandType.StoredProcedure);
+        return result != 0;
     }
 }
