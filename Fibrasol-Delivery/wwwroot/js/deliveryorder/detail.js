@@ -1,0 +1,1125 @@
+// Get order ID from URL
+const pathParts = window.location.pathname.split('/');
+const orderId = pathParts[pathParts.length - 1];
+const isNewOrder = orderId === '0';
+
+// Global variable to track current order ID
+window.currentOrderId = isNewOrder ? null : parseInt(orderId);
+
+// Global arrays to track backorder and invoice changes
+window.deletedBackorders = [];
+window.deletedInvoices = [];
+window.originalBackorders = [];
+
+// Global arrays to track rider selections and changes
+window.originalRiders = []; // Original rider IDs when loading existing order
+window.currentRiders = [];  // Currently selected rider IDs
+
+// Global array to store SalesPersons
+window.salesPersons = [];
+
+$(document).ready(function() {
+    // Load SalesPersons on page load
+    loadSalesPersons();
+    // Load statuses, clients, and riders
+    Promise.all([loadDeliveryStatuses(), loadClients(), loadRiders()]).then(() => {
+        if (isNewOrder) {
+            setupNewOrder();
+        } else {
+            loadOrderData(parseInt(orderId));
+        }
+    });
+});
+
+function loadDeliveryStatuses() {
+    return $.ajax({
+        url: '/delivery-statuses',
+        type: 'GET',
+        success: function(statuses) {
+            console.log('Delivery statuses loaded:', statuses);
+            const statusSelect = $('#orderStatus');
+            statusSelect.empty();
+
+            // Add default option
+            statusSelect.append('<option value="">Seleccione un estado</option>');
+
+            // Add status options from database
+            statuses.forEach(function(status) {
+                statusSelect.append(`<option value="${status.id}" data-name="${status.name}">${status.name}</option>`);
+            });
+
+            // Set default status to 1 for new orders
+            if (isNewOrder && statuses.length > 0) {
+                statusSelect.val('1'); // Set to status ID 1
+                console.log('Default status (ID: 1) selected for new order');
+            }
+
+            console.log('Status options added to dropdown');
+        },
+        error: function(xhr, status, error) {
+            console.error('Error loading delivery statuses:', error);
+            console.log('XHR Response:', xhr.responseText);
+
+            // Fallback to static options if API fails
+            const statusSelect = $('#orderStatus');
+            statusSelect.empty();
+            statusSelect.append('<option value="">Seleccione un estado</option>');
+            statusSelect.append('<option value="1" data-name="Pendiente">Pendiente</option>');
+            statusSelect.append('<option value="2" data-name="En Progreso">En Progreso</option>');
+            statusSelect.append('<option value="3" data-name="Entregado">Entregado</option>');
+            statusSelect.append('<option value="4" data-name="Cancelado">Cancelado</option>');
+
+            // Set default status to 1 for new orders (fallback)
+            if (isNewOrder) {
+                statusSelect.val('1'); // Set to status ID 1
+                console.log('Default status (ID: 1) selected for new order (fallback)');
+            }
+
+            // Show error message to user
+            showErrorMessage('Error al cargar los estados. Se han cargado valores por defecto.');
+        }
+    });
+}
+
+function setupNewOrder() {
+    document.getElementById('pageTitle').textContent = 'Nueva Constancia de Entrega';
+    document.getElementById('orderId').value = 'Nuevo';
+    document.getElementById('orderTotal').value = '0.00';
+
+    // Initialize riders arrays for new order
+    window.originalRiders = [];
+    window.currentRiders = [];
+
+    // Create new delivery order to get ID
+    createNewDeliveryOrder();
+
+    addBackorder(); // Add one empty backorder by default
+}
+
+function createNewDeliveryOrder() {
+    $.ajax({
+        url: '/delivery-orders',
+        type: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({
+            Total: 0
+        }),
+        success: function(newOrderId) {
+            // Update the order ID in the form
+            document.getElementById('orderId').value = newOrderId;
+
+            // Update the global orderId variable for save operations
+            window.currentOrderId = newOrderId;
+
+            // Update page title
+            document.getElementById('pageTitle').textContent = 'Nueva Constancia de Entrega #' + newOrderId;
+        },
+        error: function(xhr, status, error) {
+            console.error('Error creating new delivery order:', error);
+            showErrorMessage('Error al crear nueva orden de entrega. Por favor, inténtelo de nuevo.');
+        }
+    });
+}
+
+function loadOrderData(id) {
+    $.ajax({
+        url: `/delivery-orders/${id}`,
+        type: 'GET',
+        success: function(orderData) {
+            console.log('Order data loaded:', orderData);
+            console.log('Riders in order data:', orderData.riders);
+            if (orderData) {
+                document.getElementById('pageTitle').textContent = 'Editar Constancia de Entrega #' + id;
+                document.getElementById('orderId').value = orderData.id;
+                document.getElementById('orderTotal').value = orderData.total.toFixed(2);
+
+                // Set the status value - ensure dropdown is populated first
+                const statusSelect = document.getElementById('orderStatus');
+                if (orderData.status.id) {
+                    console.log('Setting status to:', orderData.status.name);
+                    statusSelect.value = orderData.status.id;
+
+                    // Verify the status was set
+                        if (statusSelect.value !== orderData.status.id) {
+                        console.warn('Status not set correctly. Available options:');
+                        for (let option of statusSelect.options) {
+                            console.log(`Option value: ${option.value}, text: ${option.text}`);
+                        }
+                    }
+                }
+
+                // Set the global orderId for save operations
+                window.currentOrderId = orderData.id;
+
+                // Load riders if they exist
+                if (orderData.riders && orderData.riders.length > 0) {
+                    console.log('Loading riders from order data:', orderData.riders);
+                    window.originalRiders = orderData.riders.map(rider => parseInt(rider.id));
+                    window.currentRiders = [...window.originalRiders];
+
+                    // Set selected options in the dropdown after riders are loaded
+                    setTimeout(() => {
+                        const ridersSelect = document.getElementById('orderRiders');
+                        if (ridersSelect && ridersSelect.options.length > 1) {
+                            window.originalRiders.forEach(riderId => {
+                                const option = ridersSelect.querySelector(`option[value="${riderId}"]`);
+                                if (option) {
+                                    option.selected = true;
+                                    console.log(`Selected rider: ${option.text} (ID: ${riderId})`);
+                                }
+                            });
+
+                            // Update current riders to reflect the UI state
+                            updateCurrentRiders();
+                        }
+                    }, 200); // Increased timeout to ensure riders dropdown is fully loaded
+                } else {
+                    // No riders assigned initially
+                    console.log('No riders found in order data');
+                    window.originalRiders = [];
+                    window.currentRiders = [];
+                }
+
+                // Load backorders if they exist
+                if (orderData.backorders && orderData.backorders.length > 0) {
+                    orderData.backorders.forEach(backorder => {
+                        addBackorder(backorder);
+                    });
+                }
+            } else {
+                // Order not found, treat as new
+                setupNewOrder();
+            }
+        },
+        error: function(xhr, status, error) {
+            console.error('Error loading delivery order:', error);
+            console.log('XHR Response:', xhr.responseText);
+            // On error, treat as new order
+            setupNewOrder();
+            showErrorMessage('Error al cargar la orden de entrega. Se ha iniciado una nueva orden.');
+        }
+    });
+}
+
+function addBackorder(data = null) {
+    const backordersContainer = document.getElementById('backordersContainer');
+    const backorderIndex = backordersContainer.children.length;
+
+    const backorderHtml = `
+        <div class="backorder-card" data-index="${backorderIndex}"
+             data-backorder-id="${data ? data.id || 0 : 0}"
+             data-object-status="${data ? 'existing' : 'new'}"
+             data-original-client-id="${data ? (data.client ? data.client.id : '') : ''}"
+             data-original-number="${data ? data.number : ''}"
+             data-original-weight="${data ? data.weight : ''}">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h6 class="mb-0">Comanda ${backorderIndex + 1}</h6>
+                <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeBackorder(${backorderIndex})">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </div>
+            <div class="row">
+                <div class="col-md-4">
+                    <label class="form-label">Cliente</label>
+                    <div class="client-search-container">
+                        <div class="input-group">
+                            <input type="text" class="form-control backorder-client" value="${data ? (data.client ? data.client.name : '') : ''}" placeholder="Buscar cliente..." autocomplete="off" onkeyup="searchClients(this)" onfocus="searchClients(this)" onblur="hideClientDropdown(this)" onchange="checkBackorderChanges(${backorderIndex})">
+                            <button class="btn btn-outline-primary" type="button" onclick="openCreateClientModal(${backorderIndex})" title="Crear nuevo cliente">
+                                <i class="bi bi-plus"></i>
+                            </button>
+                        </div>
+                        <input type="hidden" class="backorder-client-id" value="${data ? (data.client ? data.client.id : '') : ''}" onchange="checkBackorderChanges(${backorderIndex})">
+                        <div class="client-dropdown"></div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">No. Commanda</label>
+                    <input type="text" class="form-control backorder-command" value="${data ? data.number : ''}" placeholder="Ingrese el número de commanda" onchange="checkBackorderChanges(${backorderIndex})">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Peso Total Toneladas</label>
+                    <div class="input-group">
+                        <input type="number" class="form-control backorder-weight" value="${data ? data.weight.toFixed(3) : ''}" step="0.001" min="0" placeholder="0.000" onchange="checkBackorderChanges(${backorderIndex})">
+                        <span class="input-group-text">Ton</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="factura-section">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h6 class="mb-0">Facturas</h6>
+                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="addFactura(${backorderIndex})">
+                        <i class="bi bi-plus-circle me-1"></i>Agregar Factura
+                    </button>
+                </div>
+                <div class="facturas-container" data-comanda="${backorderIndex}">
+                    <!-- Facturas will be added here -->
+                </div>
+            </div>
+        </div>
+    `;
+
+    backordersContainer.insertAdjacentHTML('beforeend', backorderHtml);
+
+    // Add facturas if data exists
+    if (data && data.invoices && data.invoices.length > 0) {
+        console.log('Loading invoices for backorder:', backorderIndex, 'invoices:', data.invoices);
+        data.invoices.forEach(factura => {
+            console.log('Processing invoice:', factura);
+            if(factura.id != 0){
+                addFactura(backorderIndex, factura);
+            }
+        });
+    }
+
+    // Update total after adding all facturas
+    setTimeout(() => updateOrderTotal(), 100);
+}
+
+function removeBackorder(index) {
+    const backorderCard = document.querySelector(`[data-index="${index}"]`);
+    if (backorderCard) {
+        const backorderId = backorderCard.getAttribute('data-backorder-id');
+        const objectStatus = backorderCard.getAttribute('data-object-status');
+
+        // If it's an existing backorder, add it to deleted list
+        if (objectStatus === 'existing' || objectStatus === 'update') {
+            const clientId = backorderCard.querySelector('.backorder-client-id').value;
+            const number = backorderCard.querySelector('.backorder-command').value;
+            const weight = parseFloat(backorderCard.querySelector('.backorder-weight').value) || 0;
+
+            // Collect all invoice data before deletion to mark them as deleted
+            const invoices = [];
+            const facturaCards = backorderCard.querySelectorAll('.factura-card');
+            facturaCards.forEach((facturaCard, facturaIndex) => {
+                const facturaData = getFacturaData(index, facturaIndex);
+                if (facturaData) {
+                    facturaData.objectStatus = 'delete';
+                    invoices.push(facturaData);
+                }
+            });
+
+            window.deletedBackorders.push({
+                id: parseInt(backorderId),
+                orderId: window.currentOrderId,
+                clientId: parseInt(clientId),
+                number: number,
+                weight: weight,
+                objectStatus: 'delete',
+                invoices: invoices
+            });
+        }
+
+        backorderCard.remove();
+        updateOrderTotal();
+        // Reindex remaining backorders
+        reindexBackorders();
+    }
+}
+
+function reindexBackorders() {
+    const backorders = document.querySelectorAll('.backorder-card');
+    backorders.forEach((backorder, index) => {
+        backorder.setAttribute('data-index', index);
+        backorder.querySelector('h6').textContent = `Comanda ${index + 1}`;
+        const removeBtn = backorder.querySelector('.btn-outline-danger');
+        removeBtn.setAttribute('onclick', `removeBackorder(${index})`);
+
+        // Update factura section data-comanda attribute
+        const facturasContainer = backorder.querySelector('.facturas-container');
+        facturasContainer.setAttribute('data-comanda', index);
+
+        // Update addFactura button onclick
+        const addFacturaBtn = backorder.querySelector('.btn-outline-primary');
+        addFacturaBtn.setAttribute('onclick', `addFactura(${index})`);
+    });
+}
+
+function addFactura(comandaIndex, data = null) {
+    const facturasContainer = document.querySelector(`[data-comanda="${comandaIndex}"]`);
+    const facturaIndex = facturasContainer.children.length;
+
+    const facturaHtml = `
+        <div class="factura-card" data-factura-index="${facturaIndex}"
+             data-factura-id="${data ? data.id || 0 : 0}"
+             data-factura-status="${data ? 'existing' : 'new'}"
+             data-original-attachment="${data ? (data.attatchment || '') : ''}"
+             data-original-signed-attachment="${data ? (data.signedAttatchment || '') : ''}">
+            <div class="factura-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <small class="fw-bold">Factura ${facturaIndex + 1}</small>
+                    <button type="button" class="btn btn-sm-custom btn-outline-danger" onclick="removeFactura(${comandaIndex}, ${facturaIndex})">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-4">
+                    <label class="form-label">Dirección</label>
+                    <input type="text" class="form-control factura-direccion" value="${data ? data.address : ''}" placeholder="Ingrese la dirección" onchange="checkFacturaChanges(${comandaIndex}, ${facturaIndex})">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Referencia</label>
+                    <input type="text" class="form-control factura-reference" value="${data ? data.reference : ''}" placeholder="Ingrese la referencia" onchange="checkFacturaChanges(${comandaIndex}, ${facturaIndex})">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Vendedor</label>
+                    <select class="form-control factura-salesperson" onchange="checkFacturaChanges(${comandaIndex}, ${facturaIndex})">
+                        <option value="">Seleccione un vendedor</option>
+                        <!-- Options will be populated by JavaScript -->
+                    </select>
+                </div>
+            </div>
+            <div class="row mt-2">
+                <div class="col-md-4">
+                    <label class="form-label">Valor</label>
+                    <div class="input-group">
+                        <span class="input-group-text">Q</span>
+                        <input type="number" class="form-control factura-value" value="${data ? data.value.toFixed(2) : ''}" step="0.01" min="0" placeholder="0.00" onchange="updateOrderTotal(); checkFacturaChanges(${comandaIndex}, ${facturaIndex})" oninput="updateOrderTotal()">
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Factura</label>
+                    <div class="document-container">
+                        ${data && data.attatchment ?
+                            `<div class="existing-document">
+                                <a href="${data.attatchment}" target="_blank" class="btn btn-sm btn-outline-info me-2">
+                                    <i class="bi bi-file-earmark-pdf me-1"></i>Ver Documento
+                                </a>
+                                <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeDocument(${comandaIndex}, ${facturaIndex}, 'attachment')">
+                                    <i class="bi bi-x"></i>
+                                </button>
+                            </div>` :
+                            `<input type="file" class="form-control factura-file" accept=".pdf,.jpg,.jpeg,.png" onchange="handleFileChange(this, ${comandaIndex}, ${facturaIndex}, 'attachment')">`
+                        }
+                        <input type="hidden" class="factura-attachment-base64" value="${data && data.attatchment ? data.attatchment : ''}">
+                        <input type="hidden" class="factura-attachment-changed" value="false">
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Factura Firmada</label>
+                    <div class="document-container">
+                        ${data && data.signedAttatchment ?
+                            `<div class="existing-document">
+                                <a href="${data.signedAttatchment}" target="_blank" class="btn btn-sm btn-outline-info me-2">
+                                    <i class="bi bi-file-earmark-pdf me-1"></i>Ver Documento
+                                </a>
+                                <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeDocument(${comandaIndex}, ${facturaIndex}, 'signed')">
+                                    <i class="bi bi-x"></i>
+                                </button>
+                            </div>` :
+                            `<input type="file" class="form-control factura-signed-file" accept=".pdf,.jpg,.jpeg,.png" onchange="handleFileChange(this, ${comandaIndex}, ${facturaIndex}, 'signed')">`
+                        }
+                        <input type="hidden" class="factura-signed-attachment-base64" value="${data && data.signedAttatchment ? data.signedAttatchment : ''}">
+                        <input type="hidden" class="factura-signed-attachment-changed" value="false">
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    facturasContainer.insertAdjacentHTML('beforeend', facturaHtml);
+
+    // Populate SalesPerson dropdown for the newly added factura
+    const newFacturaCard = facturasContainer.lastElementChild;
+    const salesPersonSelect = newFacturaCard.querySelector('.factura-salesperson');
+    const selectedSalesPersonId = data && data.salesPerson ? data.salesPerson.id : null;
+
+    if (data && data.salesPerson) {
+        console.log(`Loading SalesPerson for invoice: ${data.salesPerson.name} (ID: ${data.salesPerson.id})`);
+    }
+
+    populateSalesPersonDropdown(salesPersonSelect, selectedSalesPersonId);
+
+    // Update total after adding factura
+    updateOrderTotal();
+}
+
+function removeFactura(comandaIndex, facturaIndex) {
+    const facturaCard = document.querySelector(`[data-comanda="${comandaIndex}"] [data-factura-index="${facturaIndex}"]`);
+    if (facturaCard) {
+        const facturaId = parseInt(facturaCard.getAttribute('data-factura-id')) || 0;
+        const facturaStatus = facturaCard.getAttribute('data-factura-status');
+
+        // If it's an existing invoice, add it to deleted list
+        if ((facturaStatus === 'existing' || facturaStatus === 'update') && facturaId > 0) {
+            const facturaData = getFacturaData(comandaIndex, facturaIndex);
+            if (facturaData) {
+                // Get the backorder ID from the parent backorder card
+                const backorderCard = document.querySelector(`[data-index="${comandaIndex}"]`);
+                const backorderId = parseInt(backorderCard.getAttribute('data-backorder-id')) || 0;
+
+                facturaData.objectStatus = 'delete';
+                facturaData.backorderId = backorderId;
+                window.deletedInvoices.push(facturaData);
+                console.log('Added invoice to deleted list:', facturaData);
+                console.log('Backorder ID for deleted invoice:', backorderId);
+            }
+        }
+
+        facturaCard.remove();
+        reindexFacturas(comandaIndex);
+
+        // Update total after removing factura
+        updateOrderTotal();
+    }
+}
+
+function reindexFacturas(comandaIndex) {
+    const facturasContainer = document.querySelector(`[data-comanda="${comandaIndex}"]`);
+    const facturas = facturasContainer.querySelectorAll('.factura-card');
+
+    facturas.forEach((factura, index) => {
+        factura.setAttribute('data-factura-index', index);
+        factura.querySelector('small').textContent = `Factura ${index + 1}`;
+        const removeBtn = factura.querySelector('.btn-outline-danger');
+        removeBtn.setAttribute('onclick', `removeFactura(${comandaIndex}, ${index})`);
+    });
+}
+
+function updateOrderTotal() {
+    let totalValue = 0;
+    const backorders = document.querySelectorAll('.backorder-card');
+
+    backorders.forEach(backorder => {
+        // Get all factura values within this comanda
+        const facturaValues = backorder.querySelectorAll('.factura-value');
+        facturaValues.forEach(facturaValue => {
+            const value = parseFloat(facturaValue.value) || 0;
+            totalValue += value;
+        });
+    });
+
+    document.getElementById('orderTotal').value = totalValue.toFixed(2);
+}
+
+function handleFileChange(fileInput, comandaIndex, facturaIndex, type) {
+    const file = fileInput.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const base64DataUrl = e.target.result; // Keep the full data URL format: data:image/png;base64,iVBORw0KG...
+
+        const facturaCard = document.querySelector(`[data-comanda="${comandaIndex}"] [data-factura-index="${facturaIndex}"]`);
+        if (facturaCard) {
+            const documentContainer = type === 'attachment' ?
+                facturaCard.querySelector('.col-md-4:nth-child(2) .document-container') :
+                facturaCard.querySelector('.col-md-4:nth-child(3) .document-container');
+
+            if (type === 'attachment') {
+                facturaCard.querySelector('.factura-attachment-base64').value = base64DataUrl;
+                facturaCard.querySelector('.factura-attachment-changed').value = 'true';
+            } else if (type === 'signed') {
+                facturaCard.querySelector('.factura-signed-attachment-base64').value = base64DataUrl;
+                facturaCard.querySelector('.factura-signed-attachment-changed').value = 'true';
+            }
+
+            // Replace file input with document link
+            const existingDocumentHtml = `
+                <div class="existing-document">
+                    <a href="${base64DataUrl}" target="_blank" class="btn btn-sm btn-outline-info me-2">
+                        <i class="bi bi-file-earmark-pdf me-1"></i>Ver Documento
+                    </a>
+                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeDocument(${comandaIndex}, ${facturaIndex}, '${type}')">
+                        <i class="bi bi-x"></i>
+                    </button>
+                </div>
+            `;
+
+            // Remove the file input and replace with document link
+            const fileInputElement = documentContainer.querySelector('input[type="file"]');
+            if (fileInputElement) {
+                fileInputElement.remove();
+                documentContainer.insertAdjacentHTML('afterbegin', existingDocumentHtml);
+            }
+
+            checkFacturaChanges(comandaIndex, facturaIndex);
+        }
+    };
+    reader.readAsDataURL(file);
+}
+
+function removeDocument(comandaIndex, facturaIndex, type) {
+    const facturaCard = document.querySelector(`[data-comanda="${comandaIndex}"] [data-factura-index="${facturaIndex}"]`);
+    if (!facturaCard) return;
+
+    const documentContainer = type === 'attachment' ?
+        facturaCard.querySelector('.col-md-4:nth-child(2) .document-container') :
+        facturaCard.querySelector('.col-md-4:nth-child(3) .document-container');
+
+    // Clear the base64 data and set as changed
+    if (type === 'attachment') {
+        facturaCard.querySelector('.factura-attachment-base64').value = '';
+        facturaCard.querySelector('.factura-attachment-changed').value = 'true';
+    } else if (type === 'signed') {
+        facturaCard.querySelector('.factura-signed-attachment-base64').value = '';
+        facturaCard.querySelector('.factura-signed-attachment-changed').value = 'true';
+    }
+
+    // Remove existing document display and show file input
+    const existingDocument = documentContainer.querySelector('.existing-document');
+    if (existingDocument) {
+        existingDocument.remove();
+    }
+
+    // Add file input
+    const fileInputClass = type === 'attachment' ? 'factura-file' : 'factura-signed-file';
+    const fileInputHtml = `<input type="file" class="form-control ${fileInputClass}" accept=".pdf,.jpg,.jpeg,.png" onchange="handleFileChange(this, ${comandaIndex}, ${facturaIndex}, '${type}')">`;
+    documentContainer.insertAdjacentHTML('afterbegin', fileInputHtml);
+
+    checkFacturaChanges(comandaIndex, facturaIndex);
+}
+
+function checkFacturaChanges(comandaIndex, facturaIndex) {
+    const facturaCard = document.querySelector(`[data-comanda="${comandaIndex}"] [data-factura-index="${facturaIndex}"]`);
+    if (!facturaCard) return;
+
+    const currentStatus = facturaCard.getAttribute('data-factura-status');
+    if (currentStatus === 'new') return; // Skip checking for new items
+
+    // Get current values
+    const currentAddress = facturaCard.querySelector('.factura-direccion').value;
+    const currentReference = facturaCard.querySelector('.factura-reference').value;
+    const currentValue = parseFloat(facturaCard.querySelector('.factura-value').value) || 0;
+    const currentSalesPersonId = parseInt(facturaCard.querySelector('.factura-salesperson').value) || 0;
+    const attachmentChanged = facturaCard.querySelector('.factura-attachment-changed').value === 'true';
+    const signedAttachmentChanged = facturaCard.querySelector('.factura-signed-attachment-changed').value === 'true';
+
+    // For existing items, check if any changes were made
+    const hasChanges = attachmentChanged || signedAttachmentChanged;
+
+    if (hasChanges && currentStatus === 'existing') {
+        facturaCard.setAttribute('data-factura-status', 'update');
+    } else if (!hasChanges && currentStatus === 'update') {
+        facturaCard.setAttribute('data-factura-status', 'existing');
+    }
+}
+
+function getFacturaData(comandaIndex, facturaIndex) {
+    const facturaCard = document.querySelector(`[data-comanda="${comandaIndex}"] [data-factura-index="${facturaIndex}"]`);
+    if (!facturaCard) return null;
+
+    const facturaId = parseInt(facturaCard.getAttribute('data-factura-id')) || 0;
+    const address = facturaCard.querySelector('.factura-direccion').value;
+    const reference = facturaCard.querySelector('.factura-reference').value;
+    const value = parseFloat(facturaCard.querySelector('.factura-value').value) || 0;
+    const salesPersonId = parseInt(facturaCard.querySelector('.factura-salesperson').value) || 0;
+    const attachment = facturaCard.querySelector('.factura-attachment-base64').value;
+    const signedAttachment = facturaCard.querySelector('.factura-signed-attachment-base64').value;
+    const attachmentChanged = facturaCard.querySelector('.factura-attachment-changed').value === 'true';
+    const signedAttachmentChanged = facturaCard.querySelector('.factura-signed-attachment-changed').value === 'true';
+    const objectStatus = facturaCard.getAttribute('data-factura-status');
+
+    return {
+        id: facturaId,
+        backorderId: 0, // Will be set when processing backorder
+        address: address,
+        reference: reference,
+        value: value,
+        salesPersonId: salesPersonId,
+        attatchment: attachment,
+        signedAttatchment: signedAttachment,
+        objectStatus: objectStatus,
+        attatchmentChanged: attachmentChanged,
+        signedAttatchmentChanged: signedAttachmentChanged
+    };
+}
+
+function checkBackorderChanges(backorderIndex) {
+    const backorderCard = document.querySelector(`[data-index="${backorderIndex}"]`);
+    if (!backorderCard) return;
+
+    const currentStatus = backorderCard.getAttribute('data-object-status');
+
+    // Skip checking if it's already marked as new
+    if (currentStatus === 'new') return;
+
+    // Get current values
+    const currentClientId = backorderCard.querySelector('.backorder-client-id').value;
+    const currentNumber = backorderCard.querySelector('.backorder-command').value;
+    const currentWeight = parseFloat(backorderCard.querySelector('.backorder-weight').value) || 0;
+
+    // Get original values
+    const originalClientId = backorderCard.getAttribute('data-original-client-id');
+    const originalNumber = backorderCard.getAttribute('data-original-number');
+    const originalWeight = parseFloat(backorderCard.getAttribute('data-original-weight')) || 0;
+
+    // Check if any values have changed
+    const hasChanges = (
+        currentClientId !== originalClientId ||
+        currentNumber !== originalNumber ||
+        Math.abs(currentWeight - originalWeight) > 0.001 // Account for floating point precision
+    );
+
+    // Update status if there are changes
+    if (hasChanges && currentStatus === 'existing') {
+        backorderCard.setAttribute('data-object-status', 'update');
+    } else if (!hasChanges && currentStatus === 'update') {
+        backorderCard.setAttribute('data-object-status', 'existing');
+    }
+}
+
+// Client search functionality
+let clientsData = [];
+let searchTimeout;
+
+// Load all clients on page load
+function loadClients() {
+    return $.ajax({
+        url: '/clients',
+        type: 'GET',
+        success: function(clients) {
+            clientsData = clients;
+        },
+        error: function(xhr, status, error) {
+            console.error('Error loading clients:', error);
+            clientsData = [];
+        }
+    });
+}
+
+// Load all riders on page load
+function loadRiders() {
+    return $.ajax({
+        url: '/riders',
+        type: 'GET',
+        success: function(riders) {
+            console.log('Riders loaded:', riders);
+            const ridersSelect = $('#orderRiders');
+            ridersSelect.empty();
+
+            // Add rider options from database
+            riders.forEach(function(rider) {
+                ridersSelect.append(`<option value="${rider.id}">${rider.name}</option>`);
+            });
+
+            console.log('Rider options added to dropdown');
+
+            // Add change event listener to track current selections
+            ridersSelect.off('change.riderTracking').on('change.riderTracking', function() {
+                updateCurrentRiders();
+            });
+        },
+        error: function(xhr, status, error) {
+            console.error('Error loading riders:', error);
+            console.log('XHR Response:', xhr.responseText);
+
+            // Clear dropdown on error
+            const ridersSelect = $('#orderRiders');
+            ridersSelect.empty();
+            ridersSelect.append('<option value="">Error cargando mensajeros</option>');
+
+            // Show error message to user
+            showErrorMessage('Error al cargar los mensajeros.');
+        }
+    });
+}
+
+// Update current riders array when selection changes
+function updateCurrentRiders() {
+    const ridersSelect = document.getElementById('orderRiders');
+    window.currentRiders = Array.from(ridersSelect.selectedOptions).map(option => parseInt(option.value));
+    console.log('Current riders updated:', window.currentRiders);
+
+    // Update visual counter
+    updateRidersCounter();
+}
+
+// Update the visual counter of selected riders
+function updateRidersCounter() {
+    const countBadge = document.getElementById('ridersSelectedCount');
+    const countSpan = document.getElementById('ridersCount');
+
+    if (window.currentRiders.length > 0) {
+        countSpan.textContent = window.currentRiders.length;
+        countBadge.style.display = 'block';
+    } else {
+        countBadge.style.display = 'none';
+    }
+}
+
+// Generate riders data with object states for the save request
+function getRidersData() {
+    const ridersData = [];
+
+    // Find riders to add (in current but not in original)
+    window.currentRiders.forEach(riderId => {
+        if (!window.originalRiders.includes(riderId)) {
+            ridersData.push({
+                riderId: riderId,
+                objectState: 'new'
+            });
+        }
+    });
+
+    // Find riders to keep (in both current and original) - these stay as 'existing'
+    window.originalRiders.forEach(riderId => {
+        if (window.currentRiders.includes(riderId)) {
+            ridersData.push({
+                riderId: riderId,
+                objectState: 'existing'
+            });
+        }
+    });
+
+    // Find riders to remove (in original but not in current)
+    window.originalRiders.forEach(riderId => {
+        if (!window.currentRiders.includes(riderId)) {
+            ridersData.push({
+                riderId: riderId,
+                objectState: 'delete'
+            });
+        }
+    });
+
+    console.log('Riders data generated:', ridersData);
+    return ridersData;
+}
+
+function searchClients(input) {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+        const searchTerm = input.value.toLowerCase().trim();
+        const dropdown = input.parentElement.querySelector('.client-dropdown');
+
+        if (searchTerm.length === 0) {
+            showAllClients(dropdown);
+            return;
+        }
+
+        const filteredClients = clientsData.filter(client =>
+            client.name.toLowerCase().includes(searchTerm)
+        );
+
+        showClientDropdown(dropdown, filteredClients, input);
+    }, 300);
+}
+
+function showAllClients(dropdown) {
+    showClientDropdown(dropdown, clientsData.slice(0, 10), null); // Show first 10 clients
+}
+
+function showClientDropdown(dropdown, clients, input) {
+    dropdown.innerHTML = '';
+
+    if (clients.length === 0) {
+        dropdown.innerHTML = '<div class="client-dropdown-item">No se encontraron clientes</div>';
+    } else {
+        clients.forEach(client => {
+            const item = document.createElement('div');
+            item.className = 'client-dropdown-item';
+            item.textContent = client.name;
+            item.setAttribute('data-client-id', client.id);
+
+            item.addEventListener('mousedown', function(e) {
+                e.preventDefault(); // Prevent blur event
+                selectClient(input || dropdown.parentElement.querySelector('.backorder-client'), client);
+            });
+
+            dropdown.appendChild(item);
+        });
+    }
+
+    dropdown.style.display = 'block';
+}
+
+function selectClient(input, client) {
+    const container = input.parentElement;
+    const clientIdInput = container.querySelector('.backorder-client-id');
+    const dropdown = container.querySelector('.client-dropdown');
+
+    input.value = client.name;
+    clientIdInput.value = client.id;
+    dropdown.style.display = 'none';
+
+    // Trigger change detection
+    const backorderCard = input.closest('.backorder-card');
+    if (backorderCard) {
+        const backorderIndex = parseInt(backorderCard.getAttribute('data-index'));
+        checkBackorderChanges(backorderIndex);
+    }
+}
+
+function hideClientDropdown(input) {
+    setTimeout(() => {
+        const dropdown = input.parentElement.querySelector('.client-dropdown');
+        dropdown.style.display = 'none';
+    }, 200); // Delay to allow click events to fire
+}
+
+function saveDeliveryOrder() {
+    // Get the current order ID (either from URL or from created order)
+    const currentId = window.currentOrderId || parseInt(orderId);
+
+    if (!currentId) {
+        showErrorMessage('No se ha establecido un ID de orden válido. Por favor, recargue la página.');
+        return;
+    }
+
+    // Collect form data
+    const statusSelect = document.getElementById('orderStatus');
+    const selectedStatusOption = statusSelect.options[statusSelect.selectedIndex];
+
+    const formData = {
+        total: parseFloat(document.getElementById('orderTotal').value),
+        statusId: parseInt(statusSelect.value),
+        riders: getRidersData(),
+        backOrders: []
+    };
+
+    // Collect backorders data
+    const backorders = document.querySelectorAll('.backorder-card');
+    backorders.forEach((backorder, backorderIndex) => {
+        const backorderId = parseInt(backorder.getAttribute('data-backorder-id')) || 0;
+        const clientId = parseInt(backorder.querySelector('.backorder-client-id').value);
+        const commandNumber = backorder.querySelector('.backorder-command').value;
+        const totalWeight = parseFloat(backorder.querySelector('.backorder-weight').value) || 0;
+        const objectStatus = backorder.getAttribute('data-object-status');
+
+        if (clientId && commandNumber && totalWeight > 0) {
+            // Collect invoices for this backorder
+            const invoices = [];
+            const facturaCards = backorder.querySelectorAll('.factura-card');
+            facturaCards.forEach((facturaCard, facturaIndex) => {
+                const facturaData = getFacturaData(backorderIndex, facturaIndex);
+                if (facturaData) {
+                    facturaData.backorderId = backorderId;
+                    invoices.push(facturaData);
+                }
+            });
+
+            // Add deleted invoices that belong to this backorder
+            console.log('Processing backorder ID:', backorderId, 'Deleted invoices:', window.deletedInvoices);
+            window.deletedInvoices.forEach(deletedInvoice => {
+                console.log('Checking deleted invoice backorderId:', deletedInvoice.backorderId, 'against current backorderId:', backorderId);
+                if (deletedInvoice.backorderId === backorderId) {
+                    console.log('Adding deleted invoice to backorder:', deletedInvoice);
+                    invoices.push(deletedInvoice);
+                }
+            });
+
+            formData.backOrders.push({
+                id: backorderId,
+                orderId: currentId,
+                clientId: clientId,
+                number: commandNumber,
+                weight: totalWeight,
+                objectStatus: objectStatus,
+                invoices: invoices
+            });
+        }
+    });
+
+    // Add deleted backorders to the list
+    window.deletedBackorders.forEach(deletedBackorder => {
+        formData.backOrders.push(deletedBackorder);
+    });
+
+    // Validate
+    if (!statusSelect.value || formData.backOrders.length === 0) {
+        alert('Por favor, complete todos los campos requeridos y agregue al menos una orden de entrega.');
+        return;
+    }
+
+    // Disable save button to prevent multiple clicks
+    const saveButton = document.querySelector('.btn-primary-custom');
+    const originalText = saveButton.innerHTML;
+    saveButton.disabled = true;
+    saveButton.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Guardando...';
+
+    // Log the final data being sent to backend
+    console.log('Final form data being sent to backend:', JSON.stringify(formData, null, 2));
+
+    // Always use UpdateAsync method
+    $.ajax({
+        url: `/delivery-orders/${currentId}`,
+        type: 'PUT',
+        contentType: 'application/json',
+        data: JSON.stringify(formData),
+        success: function(response) {
+            // Show success message
+            showSuccessMessage('Constancia de entrega guardada correctamente');
+
+            // Redirect to list after a short delay
+            setTimeout(function() {
+                window.location.href = '/constancias';
+            }, 1500);
+        },
+        error: function(xhr, status, error) {
+            console.error('Error saving delivery order:', error);
+            showErrorMessage('Error al guardar la constancia de entrega. Por favor, inténtelo de nuevo.');
+        },
+        complete: function() {
+            // Re-enable save button
+            saveButton.disabled = false;
+            saveButton.innerHTML = originalText;
+        }
+    });
+}
+
+function showSuccessMessage(message) {
+    // Create and show a temporary success alert
+    var alertHtml = '<div class="alert alert-success alert-dismissible fade show" role="alert">' +
+                   '<i class="bi bi-check-circle me-2"></i>' + message +
+                   '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>' +
+                   '</div>';
+
+    $('.page-header').after(alertHtml);
+
+    // Auto-dismiss after 3 seconds
+    setTimeout(function() {
+        $('.alert-success').fadeOut();
+    }, 3000);
+}
+
+function showErrorMessage(message) {
+    // Create and show a temporary error alert
+    var alertHtml = '<div class="alert alert-warning alert-dismissible fade show" role="alert">' +
+                   '<i class="bi bi-exclamation-triangle me-2"></i>' + message +
+                   '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>' +
+                   '</div>';
+
+    $('.page-header').after(alertHtml);
+
+    // Auto-dismiss after 5 seconds
+    setTimeout(function() {
+        $('.alert-warning').fadeOut();
+    }, 5000);
+}
+
+// Load SalesPersons from API
+function loadSalesPersons() {
+    $.ajax({
+        url: '/sales-persons',
+        type: 'GET',
+        success: function(data) {
+            window.salesPersons = data;
+            console.log('SalesPersons loaded:', data);
+        },
+        error: function(xhr, status, error) {
+            console.error('Error loading SalesPersons:', error);
+        }
+    });
+}
+
+// Populate SalesPerson dropdown options
+function populateSalesPersonDropdown(selectElement, selectedId = null) {
+    selectElement.innerHTML = '<option value="">Seleccione un vendedor</option>';
+
+    window.salesPersons.forEach(salesPerson => {
+        const option = document.createElement('option');
+        option.value = salesPerson.id;
+        option.textContent = salesPerson.name;
+        if (selectedId && salesPerson.id === selectedId) {
+            option.selected = true;
+        }
+        selectElement.appendChild(option);
+    });
+}
+
+// Global variable to store which backorder is being edited
+window.currentBackorderIndex = null;
+
+// Open create client modal
+function openCreateClientModal(backorderIndex) {
+    window.currentBackorderIndex = backorderIndex;
+    document.getElementById('newClientName').value = '';
+    document.getElementById('newClientName').classList.remove('is-invalid');
+
+    // Reset button state
+    const createBtn = document.querySelector('#createClientModal .btn-primary-custom');
+    createBtn.querySelector('.btn-text').classList.remove('d-none');
+    createBtn.querySelector('.btn-spinner').classList.add('d-none');
+    createBtn.disabled = false;
+
+    const modal = new bootstrap.Modal(document.getElementById('createClientModal'));
+    modal.show();
+}
+
+// Create new client
+function createNewClient() {
+    const clientName = document.getElementById('newClientName').value.trim();
+    const nameInput = document.getElementById('newClientName');
+
+    // Validate input
+    if (!clientName) {
+        nameInput.classList.add('is-invalid');
+        return;
+    }
+
+    nameInput.classList.remove('is-invalid');
+
+    // Show loading state
+    const createBtn = document.querySelector('#createClientModal .btn-primary-custom');
+    createBtn.querySelector('.btn-text').classList.add('d-none');
+    createBtn.querySelector('.btn-spinner').classList.remove('d-none');
+    createBtn.disabled = true;
+
+    // Call the client creation API
+    $.ajax({
+        url: '/clients',
+        type: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({
+            Name: clientName
+        }),
+        success: function(newClientId) {
+            console.log('Client created successfully with ID:', newClientId);
+
+            // Create client object to add to the global list
+            const newClient = {
+                id: newClientId,
+                name: clientName
+            };
+
+            // Add to global clients array
+            if (!window.clients) {
+                window.clients = [];
+            }
+            window.clients.push(newClient);
+
+            // Update the current backorder's client field
+            if (window.currentBackorderIndex !== null) {
+                const backorderCard = document.querySelector(`[data-index="${window.currentBackorderIndex}"]`);
+                if (backorderCard) {
+                    const clientInput = backorderCard.querySelector('.backorder-client');
+                    const clientIdInput = backorderCard.querySelector('.backorder-client-id');
+
+                    clientInput.value = clientName;
+                    clientIdInput.value = newClientId;
+
+                    // Trigger change event to mark backorder as modified
+                    clientIdInput.dispatchEvent(new Event('change'));
+                }
+            }
+
+            // Close modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('createClientModal'));
+            modal.hide();
+
+            // Show success message
+            showSuccessMessage(`Cliente "${clientName}" creado exitosamente`);
+        },
+        error: function(xhr, status, error) {
+            console.error('Error creating client:', error);
+            showErrorMessage('Error al crear el cliente. Por favor, inténtelo de nuevo.');
+        },
+        complete: function() {
+            // Reset button state
+            createBtn.querySelector('.btn-text').classList.remove('d-none');
+            createBtn.querySelector('.btn-spinner').classList.add('d-none');
+            createBtn.disabled = false;
+        }
+    });
+}
+
+// Handle Enter key in client name input
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('newClientName').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            createNewClient();
+        }
+    });
+});
