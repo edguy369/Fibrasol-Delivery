@@ -1,6 +1,5 @@
 // Get order ID from URL
-const pathParts = window.location.pathname.split('/');
-const orderId = pathParts[pathParts.length - 1];
+const orderId = FibrasolUtils.utils.getIdFromUrl();
 const isNewOrder = orderId === '0';
 
 // Global variable to track current order ID
@@ -75,8 +74,7 @@ function loadDeliveryStatuses() {
                 console.log('Default status (ID: 1) selected for new order (fallback)');
             }
 
-            // Show error message to user
-            showErrorMessage('Error al cargar los estados. Se han cargado valores por defecto.');
+            FibrasolUtils.ui.showErrorMessage('Error al cargar los estados. Se han cargado valores por defecto.');
         }
     });
 }
@@ -116,7 +114,7 @@ function createNewDeliveryOrder() {
         },
         error: function(xhr, status, error) {
             console.error('Error creating new delivery order:', error);
-            showErrorMessage('Error al crear nueva orden de entrega. Por favor, inténtelo de nuevo.');
+            FibrasolUtils.ui.showErrorMessage('Error al crear nueva orden de entrega. Por favor, inténtelo de nuevo.');
         }
     });
 }
@@ -194,9 +192,8 @@ function loadOrderData(id) {
         error: function(xhr, status, error) {
             console.error('Error loading delivery order:', error);
             console.log('XHR Response:', xhr.responseText);
-            // On error, treat as new order
             setupNewOrder();
-            showErrorMessage('Error al cargar la orden de entrega. Se ha iniciado una nueva orden.');
+            FibrasolUtils.ui.showErrorMessage('Error al cargar la orden de entrega. Se ha iniciado una nueva orden.');
         }
     });
 }
@@ -710,8 +707,7 @@ function loadRiders() {
             ridersSelect.empty();
             ridersSelect.append('<option value="">Error cargando mensajeros</option>');
 
-            // Show error message to user
-            showErrorMessage('Error al cargar los mensajeros.');
+            FibrasolUtils.ui.showErrorMessage('Error al cargar los mensajeros.');
         }
     });
 }
@@ -849,11 +845,10 @@ function hideClientDropdown(input) {
 }
 
 function saveDeliveryOrder() {
-    // Get the current order ID (either from URL or from created order)
     const currentId = window.currentOrderId || parseInt(orderId);
 
     if (!currentId) {
-        showErrorMessage('No se ha establecido un ID de orden válido. Por favor, recargue la página.');
+        FibrasolUtils.ui.showErrorMessage('No se ha establecido un ID de orden válido. Por favor, recargue la página.');
         return;
     }
 
@@ -922,71 +917,31 @@ function saveDeliveryOrder() {
         return;
     }
 
-    // Disable save button to prevent multiple clicks
     const saveButton = document.querySelector('.btn-primary-custom');
-    const originalText = saveButton.innerHTML;
-    saveButton.disabled = true;
-    saveButton.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Guardando...';
+    FibrasolUtils.ui.setButtonLoading(saveButton);
 
-    // Log the final data being sent to backend
     console.log('Final form data being sent to backend:', JSON.stringify(formData, null, 2));
-
-    // Always use UpdateAsync method
     $.ajax({
         url: `/delivery-orders/${currentId}`,
         type: 'PUT',
         contentType: 'application/json',
         data: JSON.stringify(formData),
         success: function(response) {
-            // Show success message
-            showSuccessMessage('Constancia de entrega guardada correctamente');
-
-            // Redirect to list after a short delay
+            FibrasolUtils.ui.showSuccessMessage('Constancia de entrega guardada correctamente');
             setTimeout(function() {
                 window.location.href = '/constancias';
             }, 1500);
         },
         error: function(xhr, status, error) {
             console.error('Error saving delivery order:', error);
-            showErrorMessage('Error al guardar la constancia de entrega. Por favor, inténtelo de nuevo.');
+            FibrasolUtils.ui.showErrorMessage('Error al guardar la constancia de entrega. Por favor, inténtelo de nuevo.');
         },
         complete: function() {
-            // Re-enable save button
-            saveButton.disabled = false;
-            saveButton.innerHTML = originalText;
+            FibrasolUtils.ui.setButtonLoading(saveButton, false);
         }
     });
 }
 
-function showSuccessMessage(message) {
-    // Create and show a temporary success alert
-    var alertHtml = '<div class="alert alert-success alert-dismissible fade show" role="alert">' +
-                   '<i class="bi bi-check-circle me-2"></i>' + message +
-                   '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>' +
-                   '</div>';
-
-    $('.page-header').after(alertHtml);
-
-    // Auto-dismiss after 3 seconds
-    setTimeout(function() {
-        $('.alert-success').fadeOut();
-    }, 3000);
-}
-
-function showErrorMessage(message) {
-    // Create and show a temporary error alert
-    var alertHtml = '<div class="alert alert-warning alert-dismissible fade show" role="alert">' +
-                   '<i class="bi bi-exclamation-triangle me-2"></i>' + message +
-                   '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>' +
-                   '</div>';
-
-    $('.page-header').after(alertHtml);
-
-    // Auto-dismiss after 5 seconds
-    setTimeout(function() {
-        $('.alert-warning').fadeOut();
-    }, 5000);
-}
 
 // Load SalesPersons from API
 function loadSalesPersons() {
@@ -1094,16 +1049,12 @@ function createNewClient() {
                 }
             }
 
-            // Close modal
-            const modal = bootstrap.Modal.getInstance(document.getElementById('createClientModal'));
-            modal.hide();
-
-            // Show success message
-            showSuccessMessage(`Cliente "${clientName}" creado exitosamente`);
+            FibrasolUtils.ui.hideModal('createClientModal');
+            FibrasolUtils.ui.showSuccessMessage(`Cliente "${clientName}" creado exitosamente`);
         },
         error: function(xhr, status, error) {
             console.error('Error creating client:', error);
-            showErrorMessage('Error al crear el cliente. Por favor, inténtelo de nuevo.');
+            FibrasolUtils.ui.showErrorMessage('Error al crear el cliente. Por favor, inténtelo de nuevo.');
         },
         complete: function() {
             // Reset button state

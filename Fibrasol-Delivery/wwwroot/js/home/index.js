@@ -1,4 +1,3 @@
-// Dashboard data loading
 document.addEventListener('DOMContentLoaded', function() {
     loadDashboardData();
     updateTimestamp();
@@ -6,28 +5,18 @@ document.addEventListener('DOMContentLoaded', function() {
 
 async function loadDashboardData() {
     try {
-        // Load all dashboard counters in parallel
         const [driversData, clientsData, salesPersonsData, ordersData, invoicesData] = await Promise.all([
-            fetchData('/dashboards/riders'),
-            fetchData('/dashboards/clients'),
-            fetchData('/dashboards/sales-persons'),
-            fetchData('/dashboards/delivery-orders'),
-            fetchData('/dashboards/invoices')
+            FibrasolUtils.api.get('/dashboards/riders'),
+            FibrasolUtils.api.get('/dashboards/clients'),
+            FibrasolUtils.api.get('/dashboards/sales-persons'),
+            FibrasolUtils.api.get('/dashboards/delivery-orders'),
+            FibrasolUtils.api.get('/dashboards/invoices')
         ]);
 
-        // Update drivers count
-        updateCounter('driversCount', driversData);
-
-        // Update clients count
-        updateCounter('clientsCount', clientsData);
-
-        // Update sales persons count
-        updateCounter('salesPersonsCount', salesPersonsData);
-
-        // Update delivery orders count
-        updateCounter('ordersCount', ordersData);
-
-        // Update invoices count with comparison
+        FibrasolUtils.ui.updateCounter('driversCount', driversData);
+        FibrasolUtils.ui.updateCounter('clientsCount', clientsData);
+        FibrasolUtils.ui.updateCounter('salesPersonsCount', salesPersonsData);
+        FibrasolUtils.ui.updateCounter('ordersCount', ordersData);
         updateInvoicesCounter(invoicesData);
 
     } catch (error) {
@@ -36,34 +25,12 @@ async function loadDashboardData() {
     }
 }
 
-async function fetchData(url) {
-    const response = await fetch(url);
-    if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    return await response.json();
-}
-
-function updateCounter(elementId, count) {
-    const element = document.getElementById(elementId);
-    if (element) {
-        // Add animation effect
-        element.style.opacity = '0.5';
-        setTimeout(() => {
-            element.innerHTML = count.toLocaleString('es-GT');
-            element.style.opacity = '1';
-        }, 200);
-    }
-}
-
 function updateInvoicesCounter(invoicesData) {
     const totalInvoices = invoicesData.invoices || 0;
     const signedInvoices = invoicesData.signedInvoices || 0;
 
-    // Update main counter
-    updateCounter('invoicesCount', totalInvoices);
+    FibrasolUtils.ui.updateCounter('invoicesCount', totalInvoices);
 
-    // Update progress bar and text
     const progressBar = document.getElementById('invoicesProgress');
     const progressText = document.getElementById('invoicesText');
 
@@ -86,7 +53,6 @@ function showErrorState() {
         }
     });
 
-    // Show error in progress text
     const progressText = document.getElementById('invoicesText');
     if (progressText) {
         progressText.innerHTML = '<span class="error-message">Error</span>';
@@ -109,8 +75,7 @@ function updateTimestamp() {
     }
 }
 
-// Refresh dashboard every 5 minutes
 setInterval(function() {
     loadDashboardData();
     updateTimestamp();
-}, 300000); // 5 minutes
+}, 300000);

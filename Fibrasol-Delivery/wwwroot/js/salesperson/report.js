@@ -4,46 +4,34 @@ let currentReportData = [];
 
 $(document).ready(function() {
     initializePage();
-    generateReport(); // Load current month by default
+    generateReport();
 });
 
 function initializePage() {
-    // Set default dates to current month
-    const now = new Date();
-    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
-    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    const firstDay = FibrasolUtils.dates.getFirstDayOfMonth();
+    const lastDay = FibrasolUtils.dates.getLastDayOfMonth();
 
-    document.getElementById('startDate').value = firstDay.toISOString().split('T')[0];
-    document.getElementById('endDate').value = lastDay.toISOString().split('T')[0];
+    document.getElementById('startDate').value = FibrasolUtils.dates.toInputFormat(firstDay);
+    document.getElementById('endDate').value = FibrasolUtils.dates.toInputFormat(lastDay);
 
-    // Initialize DataTable
     salesDataTable = $('#salesTable').DataTable({
-        language: {
-            url: 'https://cdn.datatables.net/plug-ins/1.13.7/i18n/es-ES.json'
-        },
-        pageLength: 10,
-        order: [[0, 'asc']], // Sort by ranking
+        ...FibrasolUtils.datatables.getSpanishConfig(),
+        order: [[0, 'asc']],
         columnDefs: [
             {
-                targets: [2], // Total Sales column
+                targets: [2],
                 render: function(data, type, row) {
-                    if (type === 'display') {
-                        return 'Q ' + parseFloat(data).toLocaleString('es-GT', {minimumFractionDigits: 2});
-                    }
-                    return data;
+                    return type === 'display' ? FibrasolUtils.currency.format(data) : data;
                 }
             },
             {
-                targets: [3], // Percentage column
+                targets: [3],
                 render: function(data, type, row) {
-                    if (type === 'display') {
-                        return data + '%';
-                    }
-                    return data;
+                    return type === 'display' ? data + '%' : data;
                 }
             },
             {
-                targets: [4], // Performance column
+                targets: [4],
                 render: function(data, type, row) {
                     if (type === 'display') {
                         const percentage = parseFloat(data);
@@ -77,8 +65,8 @@ function applyQuickPeriod() {
 
     switch(period) {
         case 'thisMonth':
-            startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-            endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+            startDate = FibrasolUtils.dates.getFirstDayOfMonth();
+            endDate = FibrasolUtils.dates.getLastDayOfMonth();
             break;
         case 'lastMonth':
             startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
@@ -101,8 +89,8 @@ function applyQuickPeriod() {
             return;
     }
 
-    document.getElementById('startDate').value = startDate.toISOString().split('T')[0];
-    document.getElementById('endDate').value = endDate.toISOString().split('T')[0];
+    document.getElementById('startDate').value = FibrasolUtils.dates.toInputFormat(startDate);
+    document.getElementById('endDate').value = FibrasolUtils.dates.toInputFormat(endDate);
 }
 
 function generateReport() {
@@ -121,9 +109,8 @@ function generateReport() {
 
     showLoading();
 
-    // Update report period badge
-    const startFormatted = new Date(startDate).toLocaleDateString('es-GT');
-    const endFormatted = new Date(endDate).toLocaleDateString('es-GT');
+    const startFormatted = FibrasolUtils.dates.formatDate(startDate);
+    const endFormatted = FibrasolUtils.dates.formatDate(endDate);
     document.getElementById('reportPeriod').textContent = `${startFormatted} - ${endFormatted}`;
 
     const requestData = {
@@ -157,8 +144,8 @@ function updateStatistics(data) {
     const topSeller = data.length > 0 ? data[0].salesPerson.name : '-';
     const totalSellers = data.length;
 
-    document.getElementById('totalSales').textContent = 'Q ' + totalSales.toLocaleString('es-GT', {minimumFractionDigits: 2});
-    document.getElementById('avgSales').textContent = 'Q ' + avgSales.toLocaleString('es-GT', {minimumFractionDigits: 2});
+    document.getElementById('totalSales').textContent = FibrasolUtils.currency.format(totalSales);
+    document.getElementById('avgSales').textContent = FibrasolUtils.currency.format(avgSales);
     document.getElementById('topSeller').textContent = topSeller;
     document.getElementById('totalSellers').textContent = totalSellers;
 }
@@ -166,7 +153,6 @@ function updateStatistics(data) {
 function updateChart(data) {
     const ctx = document.getElementById('salesChart').getContext('2d');
 
-    // Destroy existing chart if it exists
     if (salesChart) {
         salesChart.destroy();
     }
@@ -174,9 +160,8 @@ function updateChart(data) {
     const labels = data.map(item => item.salesPerson.name);
     const salesData = data.map(item => item.totalSales);
 
-    // Generate colors for each bar
     const backgroundColors = data.map((_, index) => {
-        const hue = (index * 137.5) % 360; // Golden angle approximation
+        const hue = (index * 137.5) % 360;
         return `hsla(${hue}, 70%, 60%, 0.8)`;
     });
 
@@ -215,7 +200,7 @@ function updateChart(data) {
                 tooltip: {
                     callbacks: {
                         label: function(context) {
-                            return 'Ventas: Q ' + context.parsed.y.toLocaleString('es-GT', {minimumFractionDigits: 2});
+                            return 'Ventas: ' + FibrasolUtils.currency.format(context.parsed.y);
                         }
                     }
                 }
@@ -256,11 +241,11 @@ function updateDataTable(data) {
     const tableData = data.map((item, index) => {
         const percentage = totalSales > 0 ? ((item.totalSales / totalSales) * 100).toFixed(1) : 0;
         return [
-            index + 1, // Ranking
+            index + 1,
             item.salesPerson.name,
             item.totalSales,
             percentage,
-            percentage // Performance (same as percentage for simplicity)
+            percentage
         ];
     });
 
@@ -282,7 +267,6 @@ function refreshReport() {
 }
 
 function exportReport() {
-    // Basic export functionality - can be enhanced with libraries like jsPDF or ExcelJS
     const startDate = document.getElementById('startDate').value;
     const endDate = document.getElementById('endDate').value;
 
