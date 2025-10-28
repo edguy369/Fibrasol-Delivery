@@ -10,6 +10,7 @@ namespace Fibrasol_Delivery.Repository;
 public class RiderRepository : IRiderRepository
 {
     private readonly string _connectionString;
+
     public RiderRepository(ConnectionString connectionString)
     {
         _connectionString = connectionString.Value;
@@ -17,51 +18,38 @@ public class RiderRepository : IRiderRepository
 
     public async Task<int> CountAsync()
     {
-        const string query = "SELECT COUNT(Id) FROM Drivers;";
+        const string query = "SELECT COUNT(Id) FROM Drivers";
         using var conn = new MySqlConnection(_connectionString);
-        var transactionResult = await conn.ExecuteScalarAsync<int>(query);
-        return transactionResult;
+        return await conn.ExecuteScalarAsync<int>(query);
     }
 
     public async Task<int> CreateAsync(RiderRequest request)
     {
-        const string query = "INSERT INTO Drivers (Name) VALUES (@pName); SELECT LAST_INSERT_ID();";
+        const string query = "INSERT INTO Drivers (Name) VALUES (@Name); SELECT LAST_INSERT_ID()";
         using var conn = new MySqlConnection(_connectionString);
-        var transactionResult = await conn.ExecuteScalarAsync<int>(query, new
-        {
-            pName = request.Name
-        });
-        return transactionResult;
+        return await conn.ExecuteScalarAsync<int>(query, new { request.Name });
     }
 
     public async Task<bool> DeleteAsync(int id)
     {
-        const string query = "DELETE FROM Drivers WHERE Id = @pId;";
+        const string query = "DELETE FROM Drivers WHERE Id = @Id";
         using var conn = new MySqlConnection(_connectionString);
-        var transactionResult = await conn.ExecuteAsync(query, new
-        {
-            pId = id
-        });
-        return transactionResult != 0;
+        var result = await conn.ExecuteAsync(query, new { Id = id });
+        return result > 0;
     }
 
     public async Task<IEnumerable<RiderModel>> GetAllAsync()
     {
-        const string query = "SELECT * FROM Drivers;";
+        const string query = "SELECT * FROM Drivers";
         using var conn = new MySqlConnection(_connectionString);
-        var transactionResult = await conn.QueryAsync<RiderModel>(query);
-        return transactionResult;
+        return await conn.QueryAsync<RiderModel>(query);
     }
 
     public async Task<bool> UpdateAsync(int id, RiderRequest request)
     {
-        const string query = "UPDATE Drivers SET Name = @pName WHERE Id = @pId;";
+        const string query = "UPDATE Drivers SET Name = @Name WHERE Id = @Id";
         using var conn = new MySqlConnection(_connectionString);
-        var transactionResult = await conn.ExecuteAsync(query, new
-        {
-            pId = id,
-            pName = request.Name
-        });
-        return transactionResult != 0;
+        var result = await conn.ExecuteAsync(query, new { Id = id, request.Name });
+        return result > 0;
     }
 }

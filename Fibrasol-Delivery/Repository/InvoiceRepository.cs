@@ -9,6 +9,7 @@ namespace Fibrasol_Delivery.Repository;
 public class InvoiceRepository : IInvoiceRepository
 {
     private readonly string _connectionString;
+
     public InvoiceRepository(ConnectionString connectionString)
     {
         _connectionString = connectionString.Value;
@@ -16,72 +17,56 @@ public class InvoiceRepository : IInvoiceRepository
 
     public async Task<int> CountAsync()
     {
-        const string query = "SELECT COUNT(Id) FROM Invoice;";
+        const string query = "SELECT COUNT(Id) FROM Invoice";
         using var conn = new MySqlConnection(_connectionString);
-        var transactionResult = await conn.ExecuteScalarAsync<int>(query);
-        return transactionResult;
+        return await conn.ExecuteScalarAsync<int>(query);
     }
 
     public async Task<int> CountSignedAsync()
     {
-        const string query = "SELECT COUNT(Id) FROM Invoice WHERE SignedAttatchment != '';";
+        const string query = "SELECT COUNT(Id) FROM Invoice WHERE SignedAttatchment != ''";
         using var conn = new MySqlConnection(_connectionString);
-        var transactionResult = await conn.ExecuteScalarAsync<int>(query);
-        return transactionResult;
+        return await conn.ExecuteScalarAsync<int>(query);
     }
 
     public async Task<int> CreateAsync(InvoiceRequest request)
     {
-        try
+        const string query = "INSERT INTO Invoice (BackorderId, Address, Reference, Value, Attatchment, SignedAttatchment, SalesPersonId) VALUES (@BackorderId, @Address, @Reference, @Value, @Attatchment, @SignedAttatchment, @SalesPersonId); SELECT LAST_INSERT_ID()";
+        using var conn = new MySqlConnection(_connectionString);
+        return await conn.ExecuteScalarAsync<int>(query, new
         {
-            const string query = "INSERT INTO Invoice (BackorderId, Address, Reference, Value, Attatchment, SignedAttatchment, SalesPersonId) " +
-            "VALUES (@pBackorderId, @pAddress, @pReference, @pValue, @pAttatchment, @pSignedAttatchment, @pSalesPersonId); SELECT LAST_INSERT_ID();";
-            using var conn = new MySqlConnection(_connectionString);
-            var transactionResult = await conn.ExecuteScalarAsync<int>(query, new
-            {
-                pBackorderId = request.BackorderId,
-                pAddress = request.Address,
-                pReference = request.Reference,
-                pValue = request.Value,
-                pAttatchment = request.Attatchment,
-                pSignedAttatchment = request.SignedAttatchment,
-                pSalesPersonId = request.SalesPersonId
-            });
-            return transactionResult;
-        }
-        catch (Exception e)
-        {
-            throw e;
-        }
-        
+            request.BackorderId,
+            request.Address,
+            request.Reference,
+            request.Value,
+            request.Attatchment,
+            request.SignedAttatchment,
+            request.SalesPersonId
+        });
     }
 
     public async Task<bool> DeleteAsync(int id)
     {
-        const string query = "DELETE FROM Invoice WHERE Id = @pId;";
+        const string query = "DELETE FROM Invoice WHERE Id = @Id";
         using var conn = new MySqlConnection(_connectionString);
-        var transactionResult = await conn.ExecuteAsync(query, new
-        {
-            pId = id
-        });
-        return transactionResult != 0;
+        var result = await conn.ExecuteAsync(query, new { Id = id });
+        return result > 0;
     }
 
     public async Task<bool> UpdateAsync(int id, InvoiceRequest request)
     {
-        const string query = "UPDATE Invoice SET Address = @pAddress, Reference = @pReference, Value = @pValue, Attatchment = @pAttatchment, " +
-            "SignedAttatchment = @pSignedAttatchment, SalesPersonId = @pSalesPersonId WHERE Id = @pId;";
+        const string query = "UPDATE Invoice SET Address = @Address, Reference = @Reference, Value = @Value, Attatchment = @Attatchment, SignedAttatchment = @SignedAttatchment, SalesPersonId = @SalesPersonId WHERE Id = @Id";
         using var conn = new MySqlConnection(_connectionString);
-        var transactionResult = await conn.ExecuteAsync(query, new
+        var result = await conn.ExecuteAsync(query, new
         {
-            pId = id,
-            pAddress = request.Address,
-            pReference = request.Reference,
-            pValue = request.Value,
-            pAttatchment = request.Attatchment,
-            pSignedAttatchment = request.SignedAttatchment,
-            pSalesPersonId = request.SalesPersonId
+            Id = id,
+            request.Address,
+            request.Reference,
+            request.Value,
+            request.Attatchment,
+            request.SignedAttatchment,
+            request.SalesPersonId
         });
-        return transactionResult != 0;
+        return result > 0;
     }
 }
