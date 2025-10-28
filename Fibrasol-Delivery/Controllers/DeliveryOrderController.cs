@@ -20,65 +20,46 @@ public class DeliveryOrderController : Controller
         _logger = logger;
     }
 
-    #region Views
     [Route("constancias")]
-    public IActionResult Index()
-    {
-        return View();
-    }
+    public IActionResult Index() => View();
 
     [Route("constancias/{id}")]
-    public IActionResult Detail(int id)
-    {
-        return View();
-    }
+    public IActionResult Detail(int id) => View();
 
     [Route("constancias/{id}/impresion")]
-    public IActionResult Print(int id)
-    {
-        return View();
-    }
-    #endregion
+    public IActionResult Print(int id) => View();
 
-    #region HTTP Methods
-    [HttpGet]
-    [Route("delivery-orders")]
+    [HttpGet("delivery-orders")]
     public async Task<IActionResult> GetAllAsync()
     {
         try
         {
-            _logger.LogInformation("Retrieving all delivery orders");
-            var deliveryOrderList = await _unitOfWork.DeliveryOrders.GetAllAsync();
-            _logger.LogInformation("Successfully retrieved {Count} delivery orders", deliveryOrderList.Count());
-            return Ok(deliveryOrderList);
+            var deliveryOrders = await _unitOfWork.DeliveryOrders.GetAllAsync();
+            return Ok(deliveryOrders);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving all delivery orders");
+            _logger.LogError(ex, "Error retrieving delivery orders");
             return StatusCode(500, "An error occurred while processing your request.");
         }
     }
 
-    [HttpGet]
-    [Route("delivery-orders/unsigned")]
+    [HttpGet("delivery-orders/unsigned")]
     public async Task<IActionResult> GetAllUnsignedAsync()
     {
         try
         {
-            _logger.LogInformation("Retrieving all unsigned delivery orders");
-            var deliveryOrderList = await _unitOfWork.DeliveryOrders.GetAllUnsignedAsync();
-            _logger.LogInformation("Successfully retrieved {Count} unsigned delivery orders", deliveryOrderList.Count());
-            return Ok(deliveryOrderList);
+            var deliveryOrders = await _unitOfWork.DeliveryOrders.GetAllUnsignedAsync();
+            return Ok(deliveryOrders);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving unsigned delivery orders");
+            _logger.LogError(ex, "Error retrieving unsigned delivery orders");
             return StatusCode(500, "An error occurred while processing your request.");
         }
     }
 
-    [HttpGet]
-    [Route("delivery-orders/{id}")]
+    [HttpGet("delivery-orders/{id}")]
     public async Task<IActionResult> GetAsyncById(int id)
     {
         try
@@ -89,51 +70,42 @@ public class DeliveryOrderController : Controller
                 return Ok(null);
             }
 
-            _logger.LogInformation("Retrieving delivery order with ID: {Id}", id);
             var deliveryOrder = await _unitOfWork.DeliveryOrders.GetByIdAsync(id);
-            _logger.LogInformation("Successfully retrieved delivery order with ID: {Id}", id);
             return Ok(deliveryOrder);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving delivery order with ID: {Id}", id);
+            _logger.LogError(ex, "Error retrieving delivery order ID: {Id}", id);
             return StatusCode(500, "An error occurred while processing your request.");
         }
     }
 
-    [HttpPost]
-    [Route("delivery-orders")]
+    [HttpPost("delivery-orders")]
     public async Task<IActionResult> CreateAsync([FromBody] DeliveryOrderRequest request)
     {
         try
         {
-            _logger.LogInformation("Creating new delivery order");
-            var transactionResult = await _unitOfWork.DeliveryOrders.CreateAsync(request);
-
-            if (transactionResult == 0)
+            var result = await _unitOfWork.DeliveryOrders.CreateAsync(request);
+            if (result == 0)
             {
                 _logger.LogWarning("Failed to create delivery order");
                 return BadRequest();
             }
 
-            _logger.LogInformation("Successfully created delivery order with ID: {Id}", transactionResult);
-            return Ok(transactionResult);
+            return Ok(result);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while creating delivery order");
+            _logger.LogError(ex, "Error creating delivery order");
             return StatusCode(500, "An error occurred while processing your request.");
         }
     }
 
-    [HttpPut]
-    [Route("delivery-orders/{id}")]
+    [HttpPut("delivery-orders/{id}")]
     public async Task<IActionResult> UpdateAsync(int id, [FromBody] DeliveryOrderCompleteRequest request)
     {
         try
         {
-            _logger.LogInformation("Updating delivery order with ID: {Id}", id);
-
             if (request == null)
             {
                 _logger.LogWarning("Update request is null for delivery order ID: {Id}", id);
@@ -146,147 +118,130 @@ public class DeliveryOrderController : Controller
                 return BadRequest("Invalid delivery order ID");
             }
 
-            var transactionResult = await _unitOfWork.DeliveryOrders.UpdateAsync(id, request);
-            if (!transactionResult)
+            var result = await _unitOfWork.DeliveryOrders.UpdateAsync(id, request);
+            if (!result)
             {
-                _logger.LogWarning("Failed to update delivery order with ID: {Id}", id);
+                _logger.LogWarning("Failed to update delivery order ID: {Id}", id);
                 return BadRequest("Failed to update delivery order");
             }
 
-        //AGREGAR DRIVERS
-        if (request.Riders != null && request.Riders.Count > 0)
-        {
-            foreach (var rider in request.Riders)
+            // Process riders
+            if (request.Riders != null && request.Riders.Count > 0)
             {
-                if(rider.ObjectState == "new")
-                    await _unitOfWork.DeliveryOrderDrivers.AssignAsync(rider.RiderId, id);
-                else if (rider.ObjectState == "delete")
-                    await _unitOfWork.DeliveryOrderDrivers.DeassignAsync(rider.RiderId, id);
-            }
-        }
-
-        //AGREGAR COMMANDAS
-        if(request.BackOrders != null && request.BackOrders.Count > 0)
-        {
-            foreach (var backOrder in request.BackOrders)
-            {
-                int backOrderId = 0;
-                if (backOrder.ObjectStatus == "new")
-                    backOrderId = await _unitOfWork.BackOrders.CreateAsync(backOrder);
-
-                else if (backOrder.ObjectStatus == "update")
+                foreach (var rider in request.Riders)
                 {
-                    _ = await _unitOfWork.BackOrders.UpdateAsync(backOrder.Id, backOrder);
-                    backOrderId = backOrder.Id;
+                    if (rider.ObjectState == "new")
+                        await _unitOfWork.DeliveryOrderDrivers.AssignAsync(rider.RiderId, id);
+                    else if (rider.ObjectState == "delete")
+                        await _unitOfWork.DeliveryOrderDrivers.DeassignAsync(rider.RiderId, id);
                 }
-                    
+            }
 
-                else if (backOrder.ObjectStatus == "delete")
-                    _ = await _unitOfWork.BackOrders.DeleteAsync(backOrder.Id);
-
-                if (backOrder.Invoices != null)
+            // Process back orders
+            if (request.BackOrders != null && request.BackOrders.Count > 0)
+            {
+                foreach (var backOrder in request.BackOrders)
                 {
-                    foreach (var invoice in backOrder.Invoices)
+                    int backOrderId = 0;
+                    if (backOrder.ObjectStatus == "new")
+                        backOrderId = await _unitOfWork.BackOrders.CreateAsync(backOrder);
+                    else if (backOrder.ObjectStatus == "update")
                     {
-                        if (invoice.ObjectStatus == "new")
+                        _ = await _unitOfWork.BackOrders.UpdateAsync(backOrder.Id, backOrder);
+                        backOrderId = backOrder.Id;
+                    }
+                    else if (backOrder.ObjectStatus == "delete")
+                        _ = await _unitOfWork.BackOrders.DeleteAsync(backOrder.Id);
+
+                    if (backOrder.Invoices != null)
+                    {
+                        foreach (var invoice in backOrder.Invoices)
                         {
-                            // Validate SalesPersonId for new invoices
-                            if (invoice.SalesPersonId <= 0)
-                                return BadRequest($"SalesPersonId is required for invoice in backorder {backOrder.Id}");
-
-                            if (!String.IsNullOrEmpty(invoice.Attatchment))
+                            if (invoice.ObjectStatus == "new")
                             {
-                                var uploadImageResult = await _doSpaces.UploadFileAsync(invoice.Attatchment, "facturas");
-                                if (uploadImageResult.Success)
-                                    invoice.Attatchment = uploadImageResult.Path;
-                            }
+                                if (invoice.SalesPersonId <= 0)
+                                    return BadRequest($"SalesPersonId is required for invoice in backorder {backOrder.Id}");
 
-                            if (!String.IsNullOrEmpty(invoice.SignedAttatchment))
-                            {
-                                var uploadImageResult = await _doSpaces.UploadFileAsync(invoice.SignedAttatchment, "facturas-firmadas");
-                                if (uploadImageResult.Success)
-                                    invoice.SignedAttatchment = uploadImageResult.Path;
-                            }
-                            invoice.BackorderId = backOrderId;
-                            _ = await _unitOfWork.Invoices.CreateAsync(invoice);
-                        }
-
-                        if (invoice.ObjectStatus == "update")
-                        {
-                            // Validate SalesPersonId for updated invoices
-                            if (invoice.SalesPersonId <= 0)
-                                return BadRequest($"SalesPersonId is required for invoice {invoice.Id}");
-
-                            if (invoice.AttatchmentChanged)
-                            {
-                                if (!String.IsNullOrEmpty(invoice.Attatchment))
+                                if (!string.IsNullOrEmpty(invoice.Attatchment))
                                 {
-                                    var uploadImageResult = await _doSpaces.UploadFileAsync(invoice.Attatchment, "facturas");
-                                    if (uploadImageResult.Success)
-                                        invoice.Attatchment = uploadImageResult.Path;
+                                    var uploadResult = await _doSpaces.UploadFileAsync(invoice.Attatchment, "facturas");
+                                    if (uploadResult.Success)
+                                        invoice.Attatchment = uploadResult.Path;
                                 }
-                            }
 
-                            if (invoice.signedAttatchmentChanged)
-                            {
-                                if (!String.IsNullOrEmpty(invoice.SignedAttatchment))
+                                if (!string.IsNullOrEmpty(invoice.SignedAttatchment))
                                 {
-                                    var uploadImageResult = await _doSpaces.UploadFileAsync(invoice.SignedAttatchment, "facturas-firmadas");
-                                    if (uploadImageResult.Success)
-                                        invoice.SignedAttatchment = uploadImageResult.Path;
+                                    var uploadResult = await _doSpaces.UploadFileAsync(invoice.SignedAttatchment, "facturas-firmadas");
+                                    if (uploadResult.Success)
+                                        invoice.SignedAttatchment = uploadResult.Path;
                                 }
+                                invoice.BackorderId = backOrderId;
+                                _ = await _unitOfWork.Invoices.CreateAsync(invoice);
                             }
 
-                            _ = await _unitOfWork.Invoices.UpdateAsync(invoice.Id, invoice);
-                        }
+                            if (invoice.ObjectStatus == "update")
+                            {
+                                if (invoice.SalesPersonId <= 0)
+                                    return BadRequest($"SalesPersonId is required for invoice {invoice.Id}");
 
-                        if (invoice.ObjectStatus == "delete")
-                        {
-                            _ = await _unitOfWork.Invoices.DeleteAsync(invoice.Id);
-                            if (!String.IsNullOrEmpty(invoice.Attatchment))
-                                await _doSpaces.DeleteFileAsync(invoice.Attatchment);
+                                if (invoice.AttatchmentChanged && !string.IsNullOrEmpty(invoice.Attatchment))
+                                {
+                                    var uploadResult = await _doSpaces.UploadFileAsync(invoice.Attatchment, "facturas");
+                                    if (uploadResult.Success)
+                                        invoice.Attatchment = uploadResult.Path;
+                                }
 
-                            if (!String.IsNullOrEmpty(invoice.SignedAttatchment))
-                                await _doSpaces.DeleteFileAsync(invoice.SignedAttatchment);
+                                if (invoice.signedAttatchmentChanged && !string.IsNullOrEmpty(invoice.SignedAttatchment))
+                                {
+                                    var uploadResult = await _doSpaces.UploadFileAsync(invoice.SignedAttatchment, "facturas-firmadas");
+                                    if (uploadResult.Success)
+                                        invoice.SignedAttatchment = uploadResult.Path;
+                                }
+
+                                _ = await _unitOfWork.Invoices.UpdateAsync(invoice.Id, invoice);
+                            }
+
+                            if (invoice.ObjectStatus == "delete")
+                            {
+                                _ = await _unitOfWork.Invoices.DeleteAsync(invoice.Id);
+                                if (!string.IsNullOrEmpty(invoice.Attatchment))
+                                    await _doSpaces.DeleteFileAsync(invoice.Attatchment);
+
+                                if (!string.IsNullOrEmpty(invoice.SignedAttatchment))
+                                    await _doSpaces.DeleteFileAsync(invoice.SignedAttatchment);
+                            }
                         }
                     }
                 }
             }
-        }
 
-            _logger.LogInformation("Successfully updated delivery order with ID: {Id}", id);
             return Ok();
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while updating delivery order with ID: {Id}", id);
+            _logger.LogError(ex, "Error updating delivery order ID: {Id}", id);
             return StatusCode(500, "An error occurred while processing your request.");
         }
     }
 
-    [HttpDelete]
-    [Route("delivery-orders/{id}")]
+    [HttpDelete("delivery-orders/{id}")]
     public async Task<IActionResult> DeleteAsync(int id)
     {
         try
         {
-            _logger.LogInformation("Deleting delivery order with ID: {Id}", id);
-            var transactionResult = await _unitOfWork.DeliveryOrders.DeleteAsync(id);
-
-            if (!transactionResult)
+            var result = await _unitOfWork.DeliveryOrders.DeleteAsync(id);
+            if (!result)
             {
-                _logger.LogWarning("Failed to delete delivery order with ID: {Id}", id);
+                _logger.LogWarning("Failed to delete delivery order ID: {Id}", id);
                 return BadRequest();
             }
 
-            _logger.LogInformation("Successfully deleted delivery order with ID: {Id}", id);
             return Ok();
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while deleting delivery order with ID: {Id}", id);
+            _logger.LogError(ex, "Error deleting delivery order ID: {Id}", id);
             return StatusCode(500, "An error occurred while processing your request.");
         }
     }
-    #endregion
 }
