@@ -34,7 +34,7 @@ public class AuthController : Controller
                 return Unauthorized();
             }
 
-            var result = await _signInManager.PasswordSignInAsync(user.UserName, request.Password, true, false);
+            var result = await _signInManager.PasswordSignInAsync(user.UserName!, request.Password, true, false);
             if (!result.Succeeded)
             {
                 _logger.LogWarning("Invalid password for email: {Email}", request.Email);
