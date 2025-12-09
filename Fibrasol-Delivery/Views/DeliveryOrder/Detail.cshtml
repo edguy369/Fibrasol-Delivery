@@ -1110,17 +1110,17 @@
             clearTimeout(searchTimeout);
             searchTimeout = setTimeout(() => {
                 const searchTerm = input.value.toLowerCase().trim();
-                const dropdown = input.parentElement.querySelector('.client-dropdown');
-                
+                const dropdown = input.closest('.client-search-container').querySelector('.client-dropdown');
+
                 if (searchTerm.length === 0) {
                     showAllClients(dropdown);
                     return;
                 }
-                
-                const filteredClients = clientsData.filter(client => 
+
+                const filteredClients = clientsData.filter(client =>
                     client.name.toLowerCase().includes(searchTerm)
                 );
-                
+
                 showClientDropdown(dropdown, filteredClients, input);
             }, 300);
         }
@@ -1154,7 +1154,7 @@
         }
         
         function selectClient(input, client) {
-            const container = input.parentElement;
+            const container = input.closest('.client-search-container');
             const clientIdInput = container.querySelector('.backorder-client-id');
             const dropdown = container.querySelector('.client-dropdown');
 
@@ -1172,7 +1172,7 @@
         
         function hideClientDropdown(input) {
             setTimeout(() => {
-                const dropdown = input.parentElement.querySelector('.client-dropdown');
+                const dropdown = input.closest('.client-search-container').querySelector('.client-dropdown');
                 dropdown.style.display = 'none';
             }, 200); // Delay to allow click events to fire
         }
