@@ -94,21 +94,19 @@ public class DeliveryOrderRepository : IDeliveryOrderRepository
         "sp_DeliveryOrder_GetById",
         (deliveryOrder, status, rider, backOrder, client, invoice, salesPerson) =>
         {
-            if (!deliveryDisctionary.TryGetValue(deliveryOrder.Id, out DeliveryOrderModel? myOrder))
+            if (!deliveryDictionary.TryGetValue(deliveryOrder.Id, out DeliveryOrderModel? myOrder))
             {
                 myOrder = deliveryOrder;
                 myOrder.Status = status;
                 myOrder.Backorders = new List<BackOrderModel>();
                 myOrder.Riders = new List<RiderModel>();
-                deliveryDisctionary.Add(myOrder.Id, myOrder);
+                deliveryDictionary.Add(myOrder.Id, myOrder);
             }
 
-                if (rider != null && !riderDictionary.TryGetValue(rider.Id, out _))
-                {
-                    myRider = rider;
-                    myOrder.Riders.Add(myRider);
-                    riderDisctionary.Add(myRider.Id, myRider);
-                }
+            if (rider != null && !riderDictionary.TryGetValue(rider.Id, out _))
+            {
+                myOrder.Riders.Add(rider);
+                riderDictionary.Add(rider.Id, rider);
             }
 
             if (backOrder != null)
@@ -122,12 +120,11 @@ public class DeliveryOrderRepository : IDeliveryOrderRepository
                     backOrderDictionary.Add(myBackOrder.Id, myBackOrder);
                 }
 
-                    if (invoice != null && !invoiceDictionary.TryGetValue(invoice.Id, out _))
-                    {
-                        invoice.SalesPerson = salesPerson;
-                        bo.Invoices.Add(invoice);
-                        invoiceDictionary.Add(invoice.Id, invoice);
-                    }
+                if (invoice != null && !invoiceDictionary.TryGetValue(invoice.Id, out _))
+                {
+                    invoice.SalesPerson = salesPerson;
+                    myBackOrder.Invoices.Add(invoice);
+                    invoiceDictionary.Add(invoice.Id, invoice);
                 }
             }
 
