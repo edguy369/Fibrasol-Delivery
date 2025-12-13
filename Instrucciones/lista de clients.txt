@@ -1,0 +1,7 @@
+lista de clients
+
+Que es lo que sucede?
+En la siguiente vista https://localhost:7157/constancias/0 nesesito que en el apartado que se muestra marcado en rojo en la siguiente imagen me genere los clients que tengo a la hora de buscarlos por nombre 
+
+capturas 
+https://tipi-pod.sfo3.cdn.digitaloceanspaces.com/claude/Fibrasol/Screenshot%202025-12-09%20163457.png

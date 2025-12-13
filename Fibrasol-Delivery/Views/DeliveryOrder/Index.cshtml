@@ -34,7 +34,106 @@
 </div>
 
 @section Scripts {
-    <script src="~/js/site.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
+    <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+    
+    <script>
+        function getTableColumns() {
+            return [
+                { data: 'id' },
+                {
+                    data: 'status.name',
+                    render: function(data, type, row) {
+                        console.log(data);
+                        let badgeClass = '';
+                        switch(data.toLowerCase()) {
+                            case 'ingresado':
+                                badgeClass = 'status-pending';
+                                break;
+                            case 'finalizado':
+                                badgeClass = 'status-delivered';
+                                break;
+                            default:
+                                badgeClass = 'status-pending';
+                        }
+                        return '<span class="status-badge ' + badgeClass + '">' + data + '</span>';
+                    }
+                },
+                {
+                    data: 'created',
+                    render: function(data, type, row) {
+                        const date = new Date(data);
+                        return date.toLocaleDateString('es-ES') + ' ' + date.toLocaleTimeString('es-ES', {hour: '2-digit', minute: '2-digit'});
+                    }
+                },
+                {
+                    data: 'total',
+                    render: function(data, type, row) {
+                        return 'Q' + data.toFixed(2);
+                    }
+                },
+                {
+                    data: null,
+                    orderable: false,
+                    render: function(data, type, row) {
+                        return '<a href="/constancias/' + row.id + '/impresion" class="btn btn-print btn-sm me-1" target="_blank">' +
+                               '<i class="bi bi-printer"></i>' +
+                               '</a>' +
+                               '<a href="/constancias/' + row.id + '" class="btn btn-view btn-sm me-1">' +
+                               '<i class="bi bi-eye"></i>' +
+                               '</a>' +
+                               '<button type="button" class="btn btn-delete btn-sm" onclick="deleteDeliveryOrder(' + row.id + ')">' +
+                               '<i class="bi bi-trash"></i>' +
+                               '</button>';
+                    }
+                }
+            ];
+        }
+        
+        $(document).ready(function() {
+            $('#deliveryOrdersTable').DataTable({
+                ajax: {
+                    url: '/delivery-orders',
+                    type: 'GET',
+                    dataSrc: '',
+                    error: function(xhr, status, error) {
+                        console.error('Error loading delivery orders:', error);
+                        // Show error message instead of dummy data
+                        showErrorMessage('Actualmente no hay constancias de entrega');
+                        
+                        // Initialize empty table
+                        $('#deliveryOrdersTable').DataTable().destroy();
+                        initializeEmptyTable();
+                    }
+                },
+                columns: getTableColumns(),
+                language: {
+                    url: 'https://cdn.datatables.net/plug-ins/1.13.7/i18n/es-ES.json',
+                    loadingRecords: 'Cargando constancias de entrega...',
+                    emptyTable: 'Actualmente no hay constancias de entrega',
+                    zeroRecords: 'Actualmente no hay constancias de entrega'
+                },
+                pageLength: 10,
+                responsive: true,
+                order: [[0, 'desc']]
+            });
+        });
+        
+        function initializeEmptyTable() {
+            $('#deliveryOrdersTable').DataTable({
+                data: [],
+                columns: getTableColumns(),
+                language: {
+                    url: 'https://cdn.datatables.net/plug-ins/1.13.7/i18n/es-ES.json',
+                    emptyTable: 'Actualmente no hay constancias de entrega',
+                    zeroRecords: 'Actualmente no hay constancias de entrega'
+                },
+                pageLength: 10,
+                responsive: true,
+                order: [[0, 'desc']]
+            });
+        }
 
     <link rel="stylesheet" href="~/lib/datatables/css/dataTables.bootstrap5.min.css">
     <script src="~/lib/datatables/js/jquery.dataTables.min.js"></script>

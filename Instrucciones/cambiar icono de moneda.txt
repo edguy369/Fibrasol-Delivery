@@ -1,0 +1,9 @@
+cambiar icono de moneda
+
+Que es lo que sucede?
+En la siguiente vista https://localhost:7157/constancias/0 nesesito cambia el icono que se muestra en la primera imagen marcado con rojo por el icono que se muestra en la segunda imagen marcado en rojo 
+
+capturas 
+https://tipi-pod.sfo3.cdn.digitaloceanspaces.com/claude/Fibrasol/Screenshot%202025-12-09%20160803.png
+https://tipi-pod.sfo3.cdn.digitaloceanspaces.com/claude/Fibrasol/Screenshot%202025-12-09%20161210.png
+

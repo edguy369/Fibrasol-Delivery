@@ -1,0 +1,8 @@
+cambiar imbolo de dolar
+
+Que es lo que sucede?
+En la siguiente vista https://localhost:7157/constancias nesecito cambiar el icono que se muestra en la primera imagewn por un icono igual al que se muestra en la segunda imagen 
+
+capturas 
+https://tipi-pod.sfo3.cdn.digitaloceanspaces.com/claude/Fibrasol/Screenshot%202025-12-09%20162434.png
+https://tipi-pod.sfo3.cdn.digitaloceanspaces.com/claude/Fibrasol/Screenshot%202025-12-09%20161210.png
