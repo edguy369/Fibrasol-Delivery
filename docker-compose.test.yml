@@ -1,0 +1,55 @@
+version: "3.8"
+
+services:
+  db:
+    image: mysql:8.0
+    container_name: fibrasol-test-db
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: fibrasol_delivery_test
+    ports:
+      - "3307:3306"
+    volumes:
+      - ./Fibrasol-Delivery/Database/Create.sql:/docker-entrypoint-initdb.d/01-create.sql
+      - ./stored_procedures.sql:/docker-entrypoint-initdb.d/02-stored-procedures.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+    networks:
+      - fibrasol-test-network
+
+  app:
+    build:
+      context: .
+      dockerfile: Fibrasol-Delivery/Dockerfile
+    container_name: fibrasol-test-app
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - ConnectionString=Server=db;Port=3306;Database=fibrasol_delivery_test;Uid=root;Pwd=root;
+      - S3Config__SecretKey=test-secret-key
+      - S3Config__AccessKey=test-access-key
+      - S3Config__Root=uploads
+      - S3Config__EndpointUrl=http://localhost:9000
+      - S3Config__Region=us-east-1
+      - S3Config__BucketName=test-bucket
+      - S3Config__UseCdn=false
+      - ASPNETCORE_ENVIRONMENT=Development
+    ports:
+      - "5003:5002"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5002/login"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - fibrasol-test-network
+
+networks:
+  fibrasol-test-network:
+    driver: bridge

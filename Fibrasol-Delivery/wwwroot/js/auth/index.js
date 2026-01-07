@@ -1,5 +1,5 @@
 document.getElementById('togglePassword').addEventListener('click', function () {
-    const password = document.getElementById('password');
+    const password = document.getElementById('_password');
     const toggleIcon = document.getElementById('toggleIcon');
 
     if (password.type === 'password') {

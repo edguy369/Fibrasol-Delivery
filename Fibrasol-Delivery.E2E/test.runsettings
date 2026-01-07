@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RunSettings>
+  <NUnit>
+    <!-- Limit parallelism to reduce resource contention with Docker -->
+    <NumberOfTestWorkers>2</NumberOfTestWorkers>
+    <!-- Default timeout for tests (in milliseconds) -->
+    <DefaultTimeout>60000</DefaultTimeout>
+  </NUnit>
+  <RunConfiguration>
+    <!-- Increase test timeout -->
+    <TestSessionTimeout>600000</TestSessionTimeout>
+  </RunConfiguration>
+</RunSettings>
