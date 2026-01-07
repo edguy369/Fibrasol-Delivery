@@ -279,4 +279,204 @@ public class DeliveryOrderDetailTests : PageTest
         await Expect(ridersSelect).ToBeVisibleAsync();
         await Expect(saveBtn).ToBeVisibleAsync();
     }
+
+    // ============ Invoice Client Tests (Dual System) ============
+
+    [Test]
+    public async Task DeliveryOrderDetail_InvoiceClientField_IsVisible()
+    {
+        // Arrange
+        await _detailPage.NavigateAsync(0);
+        await _detailPage.WaitForPageLoadAsync();
+
+        // Add backorder and invoice
+        await _detailPage.ClickAddBackorderAsync();
+        await Page.WaitForTimeoutAsync(300);
+        await _detailPage.ClickAddInvoiceAsync(0);
+        await Page.WaitForTimeoutAsync(300);
+        await ScreenshotHelper.TakeScreenshotAsync(Page, nameof(DeliveryOrderDetail_InvoiceClientField_IsVisible), "01_InvoiceWithClientField");
+
+        // Assert
+        var isVisible = await _detailPage.IsInvoiceClientFieldVisibleAsync(0);
+        Assert.That(isVisible, Is.True, "Invoice should have a client search field");
+    }
+
+    [Test]
+    public async Task DeliveryOrderDetail_InvoiceClient_CanSearchAndSelect()
+    {
+        // Arrange
+        await _detailPage.NavigateAsync(0);
+        await _detailPage.WaitForPageLoadAsync();
+
+        // Add backorder and invoice
+        await _detailPage.ClickAddBackorderAsync();
+        await Page.WaitForTimeoutAsync(300);
+        await _detailPage.ClickAddInvoiceAsync(0);
+        await Page.WaitForTimeoutAsync(300);
+        await ScreenshotHelper.TakeScreenshotAsync(Page, nameof(DeliveryOrderDetail_InvoiceClient_CanSearchAndSelect), "01_BeforeSearch");
+
+        // Act - Search for client "Cliente Demo 1" (seeded in database)
+        await _detailPage.SearchAndSelectInvoiceClientAsync(0, "Cliente Demo 1");
+        await ScreenshotHelper.TakeScreenshotAsync(Page, nameof(DeliveryOrderDetail_InvoiceClient_CanSearchAndSelect), "02_AfterSelect");
+
+        // Assert
+        var clientName = await _detailPage.GetInvoiceClientNameAsync(0);
+        var clientId = await _detailPage.GetInvoiceClientIdAsync(0);
+
+        Assert.That(clientName, Is.EqualTo("Cliente Demo 1"), "Client name should be set");
+        Assert.That(clientId, Is.Not.Empty.And.Not.EqualTo("0"), "Client ID should be set");
+    }
+
+    [Test]
+    public async Task DeliveryOrderDetail_InvoiceClient_CanBeDifferentFromBackorderClient()
+    {
+        // Arrange
+        await _detailPage.NavigateAsync(0);
+        await _detailPage.WaitForPageLoadAsync();
+
+        // Add backorder with Client 1
+        await _detailPage.ClickAddBackorderAsync();
+        await Page.WaitForTimeoutAsync(300);
+        await _detailPage.FillBackorderAsync(0, "Cliente Demo 1", "CMD-TEST-001", "10.5");
+        await Page.WaitForTimeoutAsync(500);
+        await ScreenshotHelper.TakeScreenshotAsync(Page, nameof(DeliveryOrderDetail_InvoiceClient_CanBeDifferentFromBackorderClient), "01_BackorderWithClient1");
+
+        // Add invoice with Client 2
+        await _detailPage.ClickAddInvoiceAsync(0);
+        await Page.WaitForTimeoutAsync(300);
+        await _detailPage.SearchAndSelectInvoiceClientAsync(0, "Cliente Demo 2");
+        await Page.WaitForTimeoutAsync(300);
+        await ScreenshotHelper.TakeScreenshotAsync(Page, nameof(DeliveryOrderDetail_InvoiceClient_CanBeDifferentFromBackorderClient), "02_InvoiceWithClient2");
+
+        // Assert - Invoice has different client than backorder
+        var invoiceClientName = await _detailPage.GetInvoiceClientNameAsync(0);
+        Assert.That(invoiceClientName, Is.EqualTo("Cliente Demo 2"), "Invoice should have Cliente Demo 2");
+    }
+
+    [Test]
+    public async Task DeliveryOrderDetail_InvoiceClient_AddNewClientButton_OpensModal()
+    {
+        // Arrange
+        await _detailPage.NavigateAsync(0);
+        await _detailPage.WaitForPageLoadAsync();
+
+        // Add backorder and invoice
+        await _detailPage.ClickAddBackorderAsync();
+        await Page.WaitForTimeoutAsync(300);
+        await _detailPage.ClickAddInvoiceAsync(0);
+        await Page.WaitForTimeoutAsync(300);
+        await ScreenshotHelper.TakeScreenshotAsync(Page, nameof(DeliveryOrderDetail_InvoiceClient_AddNewClientButton_OpensModal), "01_BeforeClickAdd");
+
+        // Act
+        await _detailPage.ClickAddClientButtonForInvoiceAsync(0);
+        await ScreenshotHelper.TakeScreenshotAsync(Page, nameof(DeliveryOrderDetail_InvoiceClient_AddNewClientButton_OpensModal), "02_ModalOpened");
+
+        // Assert
+        var modal = Page.Locator("#createClientModal.show");
+        await Expect(modal).ToBeVisibleAsync();
+    }
+
+    [Test]
+    public async Task DeliveryOrderDetail_InvoiceClient_CreateNewClient_SetsClientOnInvoice()
+    {
+        // Arrange
+        await _detailPage.NavigateAsync(0);
+        await _detailPage.WaitForPageLoadAsync();
+
+        // Add backorder and invoice
+        await _detailPage.ClickAddBackorderAsync();
+        await Page.WaitForTimeoutAsync(300);
+        await _detailPage.ClickAddInvoiceAsync(0);
+        await Page.WaitForTimeoutAsync(300);
+
+        // Act - Create new client from invoice
+        await _detailPage.ClickAddClientButtonForInvoiceAsync(0);
+        await Page.WaitForTimeoutAsync(300);
+
+        var uniqueClientName = $"Test Client Invoice {DateTime.Now.Ticks}";
+        await _detailPage.CreateClientInModalAsync(uniqueClientName);
+        await Page.WaitForTimeoutAsync(500);
+        await ScreenshotHelper.TakeScreenshotAsync(Page, nameof(DeliveryOrderDetail_InvoiceClient_CreateNewClient_SetsClientOnInvoice), "01_AfterCreateClient");
+
+        // Assert
+        var clientName = await _detailPage.GetInvoiceClientNameAsync(0);
+        var clientId = await _detailPage.GetInvoiceClientIdAsync(0);
+
+        Assert.That(clientName, Is.EqualTo(uniqueClientName), "New client name should be set on invoice");
+        Assert.That(clientId, Is.Not.Empty.And.Not.EqualTo("0"), "New client ID should be set");
+    }
+
+    [Test]
+    public async Task DeliveryOrderDetail_ExistingOrder_LoadsInvoiceClientData()
+    {
+        // First, get an existing order ID from the list that has invoices
+        var ordersPage = new DeliveryOrdersPage(Page, BaseUrl);
+        await ordersPage.NavigateAsync();
+        await ordersPage.WaitForTableLoadAsync();
+
+        var rowCount = await ordersPage.GetRowCountAsync();
+        if (rowCount == 0)
+        {
+            Assert.Ignore("No existing orders to test");
+            return;
+        }
+
+        var orderId = await ordersPage.GetOrderIdAsync(0);
+        if (orderId == null)
+        {
+            Assert.Ignore("Could not get order ID");
+            return;
+        }
+
+        // Act
+        await _detailPage.NavigateAsync(orderId.Value);
+        await _detailPage.WaitForPageLoadAsync();
+        await ScreenshotHelper.TakeScreenshotAsync(Page, nameof(DeliveryOrderDetail_ExistingOrder_LoadsInvoiceClientData), "01_ExistingOrderWithInvoice");
+
+        // Assert - Check if there are invoices and if client field exists
+        var invoiceCount = await _detailPage.GetInvoiceCountAsync();
+        if (invoiceCount > 0)
+        {
+            var isClientFieldVisible = await _detailPage.IsInvoiceClientFieldVisibleAsync(0);
+            Assert.That(isClientFieldVisible, Is.True, "Invoice client field should be visible for existing orders");
+        }
+        else
+        {
+            Assert.Pass("Order has no invoices, test passes by default");
+        }
+    }
+
+    [Test]
+    public async Task DeliveryOrderDetail_MultipleInvoices_EachHasOwnClient()
+    {
+        // Arrange
+        await _detailPage.NavigateAsync(0);
+        await _detailPage.WaitForPageLoadAsync();
+
+        // Add backorder
+        await _detailPage.ClickAddBackorderAsync();
+        await Page.WaitForTimeoutAsync(300);
+
+        // Add two invoices
+        await _detailPage.ClickAddInvoiceAsync(0);
+        await Page.WaitForTimeoutAsync(300);
+        await _detailPage.ClickAddInvoiceAsync(0);
+        await Page.WaitForTimeoutAsync(300);
+        await ScreenshotHelper.TakeScreenshotAsync(Page, nameof(DeliveryOrderDetail_MultipleInvoices_EachHasOwnClient), "01_TwoInvoicesAdded");
+
+        // Set different clients for each invoice
+        await _detailPage.SearchAndSelectInvoiceClientAsync(0, "Cliente Demo 1");
+        await Page.WaitForTimeoutAsync(300);
+        await _detailPage.SearchAndSelectInvoiceClientAsync(1, "Cliente Demo 2");
+        await Page.WaitForTimeoutAsync(300);
+        await ScreenshotHelper.TakeScreenshotAsync(Page, nameof(DeliveryOrderDetail_MultipleInvoices_EachHasOwnClient), "02_DifferentClientsSet");
+
+        // Assert
+        var client1 = await _detailPage.GetInvoiceClientNameAsync(0);
+        var client2 = await _detailPage.GetInvoiceClientNameAsync(1);
+
+        Assert.That(client1, Is.EqualTo("Cliente Demo 1"), "First invoice should have Cliente Demo 1");
+        Assert.That(client2, Is.EqualTo("Cliente Demo 2"), "Second invoice should have Cliente Demo 2");
+        Assert.That(client1, Is.Not.EqualTo(client2), "Each invoice should have its own client");
+    }
 }

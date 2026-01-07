@@ -42,12 +42,14 @@ public class InvoiceRepository : IInvoiceRepository
             new
             {
                 pBackorderId = request.BackorderId,
+                pClientId = request.ClientId,
                 pAddress = request.Address,
                 pReference = request.Reference,
                 pValue = request.Value,
                 pAttatchment = request.Attatchment,
                 pSignedAttatchment = request.SignedAttatchment,
-                pSalesPersonId = request.SalesPersonId
+                pSalesPersonId = request.SalesPersonId,
+                pCurrency = request.Currency
             },
             commandType: CommandType.StoredProcedure);
         return transactionResult;
@@ -71,12 +73,14 @@ public class InvoiceRepository : IInvoiceRepository
             new
             {
                 pId = id,
+                pClientId = request.ClientId,
                 pAddress = request.Address,
                 pReference = request.Reference,
                 pValue = request.Value,
                 pAttatchment = request.Attatchment,
                 pSignedAttatchment = request.SignedAttatchment,
-                pSalesPersonId = request.SalesPersonId
+                pSalesPersonId = request.SalesPersonId,
+                pCurrency = request.Currency
             },
             commandType: CommandType.StoredProcedure);
         return result != 0;

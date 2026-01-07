@@ -242,14 +242,16 @@ BEGIN
         f.Id AS RiderAssignationId,
         g.Id, g.Name,
         c.Id AS BackorderId, c.Id, c.Number, c.Weight,
-        d.Id AS ClientId, d.Id, d.Name,
-        e.Id AS InvoiceId, e.Id, e.Address, e.Reference, e.Value, e.Attatchment, e.SignedAttatchment,
+        d.Id AS BackOrderClientId, d.Id, d.Name,
+        e.Id AS InvoiceId, e.Id, e.Address, e.Reference, e.Value, e.Attatchment, e.SignedAttatchment, e.Currency,
+        ic.Id AS InvoiceClientId, ic.Id, ic.Name,
         h.Id AS SalesPersonId, h.Id, h.Name
     FROM DeliveryOrder a
     INNER JOIN DeliveryOrderStatus b ON a.StatusId = b.Id
     LEFT JOIN BackOrder c ON a.Id = c.DeliveryOrderId
     LEFT JOIN Clients d ON d.Id = c.ClientId
     LEFT JOIN Invoice e ON e.BackorderId = c.Id
+    LEFT JOIN Clients ic ON ic.Id = e.ClientId
     LEFT JOIN DeliveryOrderDrivers f ON f.DeliveryOrderId = a.Id
     LEFT JOIN Drivers g ON g.Id = f.DriverId
     LEFT JOIN SalesPerson h ON h.Id = e.SalesPersonId
@@ -308,16 +310,18 @@ END$$
 DROP PROCEDURE IF EXISTS sp_Invoice_Create$$
 CREATE PROCEDURE sp_Invoice_Create(
     IN pBackorderId INT,
+    IN pClientId INT,
     IN pAddress VARCHAR(500),
     IN pReference VARCHAR(255),
     IN pValue DOUBLE,
     IN pAttatchment VARCHAR(500),
     IN pSignedAttatchment VARCHAR(500),
-    IN pSalesPersonId INT
+    IN pSalesPersonId INT,
+    IN pCurrency VARCHAR(3)
 )
 BEGIN
-    INSERT INTO Invoice (BackorderId, Address, Reference, Value, Attatchment, SignedAttatchment, SalesPersonId)
-    VALUES (pBackorderId, pAddress, pReference, pValue, pAttatchment, pSignedAttatchment, pSalesPersonId);
+    INSERT INTO Invoice (BackorderId, ClientId, Address, Reference, Value, Attatchment, SignedAttatchment, SalesPersonId, Currency)
+    VALUES (pBackorderId, pClientId, pAddress, pReference, pValue, pAttatchment, pSignedAttatchment, pSalesPersonId, pCurrency);
     SELECT LAST_INSERT_ID() AS Id;
 END$$
 
@@ -331,17 +335,19 @@ END$$
 DROP PROCEDURE IF EXISTS sp_Invoice_Update$$
 CREATE PROCEDURE sp_Invoice_Update(
     IN pId INT,
+    IN pClientId INT,
     IN pAddress VARCHAR(500),
     IN pReference VARCHAR(255),
     IN pValue DOUBLE,
     IN pAttatchment VARCHAR(500),
     IN pSignedAttatchment VARCHAR(500),
-    IN pSalesPersonId INT
+    IN pSalesPersonId INT,
+    IN pCurrency VARCHAR(3)
 )
 BEGIN
     UPDATE Invoice
-    SET Address = pAddress, Reference = pReference, Value = pValue,
-        Attatchment = pAttatchment, SignedAttatchment = pSignedAttatchment, SalesPersonId = pSalesPersonId
+    SET ClientId = pClientId, Address = pAddress, Reference = pReference, Value = pValue,
+        Attatchment = pAttatchment, SignedAttatchment = pSignedAttatchment, SalesPersonId = pSalesPersonId, Currency = pCurrency
     WHERE Id = pId;
     SELECT ROW_COUNT() AS AffectedRows;
 END$$

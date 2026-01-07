@@ -35,6 +35,9 @@ public class DeliveryOrderDetailPage
     private const string InvoiceCurrency = ".factura-currency";
     private const string InvoiceFile = "input[type='file']";
     private const string DeleteInvoiceButton = ".btn-sm-custom.btn-outline-danger";  // btn-sm-custom is unique to invoice
+    private const string InvoiceClientSearch = ".factura-client";
+    private const string InvoiceClientId = ".factura-client-id";
+    private const string InvoiceClientDropdown = ".client-search-container .client-dropdown";
 
     // Modal selectors
     private const string ClientModal = "#createClientModal";
@@ -114,8 +117,8 @@ public class DeliveryOrderDetailPage
             {
                 await clientInput.FillAsync(clientName);
                 await _page.WaitForTimeoutAsync(500);
-                // Click on dropdown item
-                await _page.ClickAsync($".dropdown-item:has-text('{clientName}')");
+                // Click on dropdown item - uses client-dropdown-item class
+                await _page.ClickAsync($".client-dropdown-item:has-text('{clientName}')");
             }
 
             // Fill number
@@ -217,6 +220,86 @@ public class DeliveryOrderDetailPage
             if (deleteBtn != null)
             {
                 await deleteBtn.ClickAsync();
+            }
+        }
+    }
+
+    // Invoice client methods
+    public async Task SearchAndSelectInvoiceClientAsync(int invoiceIndex, string clientName)
+    {
+        var invoices = await _page.QuerySelectorAllAsync(InvoiceCards);
+        if (invoices.Count > invoiceIndex)
+        {
+            var invoice = invoices[invoiceIndex];
+            var clientInput = await invoice.QuerySelectorAsync(InvoiceClientSearch);
+            if (clientInput != null)
+            {
+                await clientInput.FillAsync(clientName);
+                await _page.WaitForTimeoutAsync(500);
+                // Click on dropdown item - uses client-dropdown-item class
+                var dropdown = await invoice.QuerySelectorAsync(".client-dropdown");
+                if (dropdown != null)
+                {
+                    await _page.ClickAsync($".client-dropdown-item:has-text('{clientName}')");
+                    await _page.WaitForTimeoutAsync(300);
+                }
+            }
+        }
+    }
+
+    public async Task<string?> GetInvoiceClientNameAsync(int invoiceIndex)
+    {
+        var invoices = await _page.QuerySelectorAllAsync(InvoiceCards);
+        if (invoices.Count > invoiceIndex)
+        {
+            var clientInput = await invoices[invoiceIndex].QuerySelectorAsync(InvoiceClientSearch);
+            if (clientInput != null)
+            {
+                return await clientInput.InputValueAsync();
+            }
+        }
+        return null;
+    }
+
+    public async Task<string?> GetInvoiceClientIdAsync(int invoiceIndex)
+    {
+        var invoices = await _page.QuerySelectorAllAsync(InvoiceCards);
+        if (invoices.Count > invoiceIndex)
+        {
+            var clientIdInput = await invoices[invoiceIndex].QuerySelectorAsync(InvoiceClientId);
+            if (clientIdInput != null)
+            {
+                return await clientIdInput.InputValueAsync();
+            }
+        }
+        return null;
+    }
+
+    public async Task<bool> IsInvoiceClientFieldVisibleAsync(int invoiceIndex)
+    {
+        var invoices = await _page.QuerySelectorAllAsync(InvoiceCards);
+        if (invoices.Count > invoiceIndex)
+        {
+            var clientInput = await invoices[invoiceIndex].QuerySelectorAsync(InvoiceClientSearch);
+            return clientInput != null;
+        }
+        return false;
+    }
+
+    public async Task ClickAddClientButtonForInvoiceAsync(int invoiceIndex)
+    {
+        var invoices = await _page.QuerySelectorAllAsync(InvoiceCards);
+        if (invoices.Count > invoiceIndex)
+        {
+            var container = await invoices[invoiceIndex].QuerySelectorAsync(".client-search-container");
+            if (container != null)
+            {
+                var addBtn = await container.QuerySelectorAsync(".btn-outline-primary");
+                if (addBtn != null)
+                {
+                    await addBtn.ClickAsync();
+                    await _page.WaitForSelectorAsync($"{ClientModal}.show");
+                }
             }
         }
     }

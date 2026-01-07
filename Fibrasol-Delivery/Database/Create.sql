@@ -143,21 +143,26 @@ CREATE TABLE `BackOrder` (
     `Number` VARCHAR(150) NOT NULL,
     `Weight` DOUBLE NOT NULL,
     PRIMARY KEY (`Id`),
-    CONSTRAINT `FK_Invoice_Clients_ClientId` FOREIGN KEY (`ClientId`) REFERENCES `Clients` (`Id`) ON DELETE CASCADE,
-    CONSTRAINT `FK_Invoice_DeliveryOrder_DeliveryOrderId` FOREIGN KEY (`DeliveryOrderId`) REFERENCES `DeliveryOrder` (`Id`) ON DELETE CASCADE
+    CONSTRAINT `FK_BackOrder_Clients_ClientId` FOREIGN KEY (`ClientId`) REFERENCES `Clients` (`Id`) ON DELETE CASCADE,
+    CONSTRAINT `FK_BackOrder_DeliveryOrder_DeliveryOrderId` FOREIGN KEY (`DeliveryOrderId`) REFERENCES `DeliveryOrder` (`Id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 /*INVOICE*/
 CREATE TABLE `Invoice` (
     `Id` INT NOT NULL AUTO_INCREMENT,
     `BackorderId` INT NOT NULL,
+    `ClientId` INT NULL,
     `Address` VARCHAR(150) NOT NULL,
     `Reference` VARCHAR(150) NOT NULL,
     `Value` DOUBLE NOT NULL,
     `Attatchment` VARCHAR(500) NULL,
     `SignedAttatchment` VARCHAR(500) NULL,
+    `SalesPersonId` INT NOT NULL,
+    `Currency` VARCHAR(3) DEFAULT 'Q',
     PRIMARY KEY (`Id`),
-    CONSTRAINT `FK_Invoice_Backorder_BackorderId` FOREIGN KEY (`BackorderId`) REFERENCES `BackOrder` (`Id`) ON DELETE CASCADE
+    CONSTRAINT `FK_Invoice_Backorder_BackorderId` FOREIGN KEY (`BackorderId`) REFERENCES `BackOrder` (`Id`) ON DELETE CASCADE,
+    CONSTRAINT `FK_Invoice_Clients_ClientId` FOREIGN KEY (`ClientId`) REFERENCES `Clients` (`Id`) ON DELETE SET NULL,
+    CONSTRAINT `FK_Invoice_SalesPerson_SalesPersonId` FOREIGN KEY (`SalesPersonId`) REFERENCES `SalesPerson` (`Id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ---------------------------------------------------
@@ -193,5 +198,5 @@ INSERT INTO `DeliveryOrderDrivers` (`DeliveryOrderId`, `DriverId`) VALUES (1, 1)
 -- Sample BackOrder (Comanda)
 INSERT INTO `BackOrder` (`Id`, `ClientId`, `DeliveryOrderId`, `Number`, `Weight`) VALUES (1, 1, 1, 'CMD-001', 25.5);
 
--- Sample Invoice
-INSERT INTO `Invoice` (`BackorderId`, `Address`, `Reference`, `Value`) VALUES (1, 'Zona 10, Ciudad de Guatemala', 'Cerca del parque central', 1500.00);
+-- Sample Invoice (with ClientId and SalesPersonId)
+INSERT INTO `Invoice` (`BackorderId`, `ClientId`, `Address`, `Reference`, `Value`, `SalesPersonId`, `Currency`) VALUES (1, 1, 'Zona 10, Ciudad de Guatemala', 'Cerca del parque central', 1500.00, 1, 'Q');
