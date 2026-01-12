@@ -21,7 +21,7 @@ CREATE TABLE `Users` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 INSERT INTO `Users` (Id, UserName, NormalizedUserName, Email, NormalizedEmail, EmailConfirmed, PasswordHash, SecurityStamp, ConcurrencyStamp, PhoneNumberConfirmed, TwoFactorEnabled, LockoutEnabled, AccessFailedCount)
-VALUES('c5ba2f50', 'root@codingtipi.com', 'ROOT@CODINGTIPI.COM', 'root@codingtipi.com', 'ROOT@CODINGTIPI.COM', 1, 'AQAAAAEAACcQAAAAEAfds+tdeFMLAC95x0bwcTzpe0Esnox9r+8tErks/rvCr67cPM5XNPfmZmXdMpwejg==', '73544099-51fe-4c98-95ee-d771000a22fd', '73544099-51fe-4c98-95ee-d771000a22fd', 0, 0, 0, 0);
+VALUES('c5ba2f50', 'root@codingtipi.com', 'ROOT@CODINGTIPI.COM', 'root@codingtipi.com', 'ROOT@CODINGTIPI.COM', 1, 'AQAAAAIAAYagAAAAEIpPdEa4pJooToDTvL8YNS1TxzmI4jDLtMHQKKDbWP8ryMPP6BxGuCEZbPx3MphVZw==', '73544099-51fe-4c98-95ee-d771000a22fd', '73544099-51fe-4c98-95ee-d771000a22fd', 0, 0, 0, 0);
 
 CREATE TABLE `Roles` (
     `Id` VARCHAR(10) NOT NULL,
@@ -143,19 +143,60 @@ CREATE TABLE `BackOrder` (
     `Number` VARCHAR(150) NOT NULL,
     `Weight` DOUBLE NOT NULL,
     PRIMARY KEY (`Id`),
-    CONSTRAINT `FK_Invoice_Clients_ClientId` FOREIGN KEY (`ClientId`) REFERENCES `Clients` (`Id`) ON DELETE CASCADE,
-    CONSTRAINT `FK_Invoice_DeliveryOrder_DeliveryOrderId` FOREIGN KEY (`DeliveryOrderId`) REFERENCES `DeliveryOrder` (`Id`) ON DELETE CASCADE
+    CONSTRAINT `FK_BackOrder_Clients_ClientId` FOREIGN KEY (`ClientId`) REFERENCES `Clients` (`Id`) ON DELETE CASCADE,
+    CONSTRAINT `FK_BackOrder_DeliveryOrder_DeliveryOrderId` FOREIGN KEY (`DeliveryOrderId`) REFERENCES `DeliveryOrder` (`Id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 /*INVOICE*/
 CREATE TABLE `Invoice` (
     `Id` INT NOT NULL AUTO_INCREMENT,
     `BackorderId` INT NOT NULL,
+    `ClientId` INT NULL,
     `Address` VARCHAR(150) NOT NULL,
     `Reference` VARCHAR(150) NOT NULL,
     `Value` DOUBLE NOT NULL,
     `Attatchment` VARCHAR(500) NULL,
     `SignedAttatchment` VARCHAR(500) NULL,
+    `SalesPersonId` INT NOT NULL,
+    `Currency` VARCHAR(3) DEFAULT 'Q',
     PRIMARY KEY (`Id`),
-    CONSTRAINT `FK_Invoice_Backorder_BackorderId` FOREIGN KEY (`BackorderId`) REFERENCES `BackOrder` (`Id`) ON DELETE CASCADE
+    CONSTRAINT `FK_Invoice_Backorder_BackorderId` FOREIGN KEY (`BackorderId`) REFERENCES `BackOrder` (`Id`) ON DELETE CASCADE,
+    CONSTRAINT `FK_Invoice_Clients_ClientId` FOREIGN KEY (`ClientId`) REFERENCES `Clients` (`Id`) ON DELETE SET NULL,
+    CONSTRAINT `FK_Invoice_SalesPerson_SalesPersonId` FOREIGN KEY (`SalesPersonId`) REFERENCES `SalesPerson` (`Id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ---------------------------------------------------
+--  Seed Data for E2E Tests
+-- ---------------------------------------------------
+
+-- Delivery Order Statuses
+INSERT INTO `DeliveryOrderStatus` (`Id`, `Name`) VALUES (1, 'Ingresado');
+INSERT INTO `DeliveryOrderStatus` (`Id`, `Name`) VALUES (2, 'En Proceso');
+INSERT INTO `DeliveryOrderStatus` (`Id`, `Name`) VALUES (3, 'Finalizado');
+
+-- Clients
+INSERT INTO `Clients` (`Id`, `Name`) VALUES (1, 'Cliente Demo 1');
+INSERT INTO `Clients` (`Id`, `Name`) VALUES (2, 'Cliente Demo 2');
+INSERT INTO `Clients` (`Id`, `Name`) VALUES (3, 'Supermercados La Economia');
+
+-- Sales Persons
+INSERT INTO `SalesPerson` (`Id`, `Name`) VALUES (1, 'Vendedor Demo 1');
+INSERT INTO `SalesPerson` (`Id`, `Name`) VALUES (2, 'Vendedor Demo 2');
+INSERT INTO `SalesPerson` (`Id`, `Name`) VALUES (3, 'Maria Garcia');
+
+-- Drivers (Riders)
+INSERT INTO `Drivers` (`Id`, `Name`) VALUES (1, 'Conductor Demo 1');
+INSERT INTO `Drivers` (`Id`, `Name`) VALUES (2, 'Conductor Demo 2');
+INSERT INTO `Drivers` (`Id`, `Name`) VALUES (3, 'Juan Perez');
+
+-- Sample Delivery Order
+INSERT INTO `DeliveryOrder` (`Id`, `StatusId`, `Created`, `Total`) VALUES (1, 1, NOW(), 1500.00);
+
+-- Link driver to order
+INSERT INTO `DeliveryOrderDrivers` (`DeliveryOrderId`, `DriverId`) VALUES (1, 1);
+
+-- Sample BackOrder (Comanda)
+INSERT INTO `BackOrder` (`Id`, `ClientId`, `DeliveryOrderId`, `Number`, `Weight`) VALUES (1, 1, 1, 'CMD-001', 25.5);
+
+-- Sample Invoice (with ClientId and SalesPersonId)
+INSERT INTO `Invoice` (`BackorderId`, `ClientId`, `Address`, `Reference`, `Value`, `SalesPersonId`, `Currency`) VALUES (1, 1, 'Zona 10, Ciudad de Guatemala', 'Cerca del parque central', 1500.00, 1, 'Q');

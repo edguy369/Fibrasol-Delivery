@@ -1,0 +1,210 @@
+.page-header {
+    background: linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%);
+    color: white;
+    padding: 2rem;
+    border-radius: 15px;
+    margin-bottom: 2rem;
+    box-shadow: 0 8px 32px rgba(79, 70, 229, 0.3);
+}
+
+.btn-primary-custom {
+    background: linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%);
+    border: none;
+    border-radius: 8px;
+    padding: 0.5rem 1.5rem;
+    font-weight: 600;
+    color: white !important;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(79, 70, 229, 0.3);
+}
+
+.btn-primary-custom:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(79, 70, 229, 0.4);
+    background: linear-gradient(135deg, #3730a3 0%, #0891b2 100%);
+    color: white !important;
+}
+
+.form-container {
+    background: white;
+    border-radius: 15px;
+    padding: 2rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    margin-bottom: 2rem;
+}
+
+.form-control:focus {
+    border-color: #4f46e5;
+    box-shadow: 0 0 0 0.2rem rgba(79, 70, 229, 0.25);
+}
+
+.form-label {
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 0.5rem;
+}
+
+.status-badge {
+    padding: 0.5rem 1rem;
+    border-radius: 25px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    display: inline-block;
+}
+
+.status-pending {
+    background-color: #fef3c7;
+    color: #92400e;
+}
+
+.status-in-progress {
+    background-color: #dbeafe;
+    color: #1e40af;
+}
+
+.status-delivered {
+    background-color: #d1fae5;
+    color: #065f46;
+}
+
+.status-cancelled {
+    background-color: #fee2e2;
+    color: #991b1b;
+}
+
+.backorder-card {
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    background-color: #f9fafb;
+}
+
+.factura-section {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid #d1d5db;
+}
+
+.factura-card {
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    padding: 0.75rem;
+    margin-bottom: 0.75rem;
+    background-color: #ffffff;
+    position: relative;
+}
+
+.factura-header {
+    background-color: #f3f4f6;
+    padding: 0.5rem;
+    margin: -0.75rem -0.75rem 0.75rem -0.75rem;
+    border-radius: 6px 6px 0 0;
+    border-bottom: 1px solid #d1d5db;
+}
+
+.btn-sm-custom {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+}
+
+.client-search-container {
+    position: relative;
+}
+
+.client-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #d1d5db;
+    border-top: none;
+    border-radius: 0 0 6px 6px;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 1000;
+    display: none;
+}
+
+.client-dropdown-item {
+    padding: 0.5rem;
+    cursor: pointer;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.client-dropdown-item:hover {
+    background-color: #f3f4f6;
+}
+
+.client-dropdown-item:last-child {
+    border-bottom: none;
+}
+
+.client-dropdown-item.active {
+    background-color: #e0e7ff;
+}
+
+.info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.info-row:last-child {
+    border-bottom: none;
+}
+
+.info-label {
+    font-weight: 600;
+    color: #374151;
+}
+
+.info-value {
+    color: #6b7280;
+}
+
+.document-container {
+    min-height: 38px;
+}
+
+.existing-document {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.existing-document .btn-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+}
+
+#orderRiders {
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    min-height: 120px;
+    font-size: 14px;
+}
+
+#orderRiders:focus {
+    border-color: #4f46e5;
+    box-shadow: 0 0 0 0.2rem rgba(79, 70, 229, 0.25);
+    outline: none;
+}
+
+#orderRiders option {
+    padding: 8px 12px;
+    margin-bottom: 2px;
+    border-radius: 4px;
+}
+
+#orderRiders option:selected {
+    background-color: #4f46e5 !important;
+    color: white !important;
+}
+
+#orderRiders option:hover {
+    background-color: #f3f4f6;
+}

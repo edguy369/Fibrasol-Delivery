@@ -15,67 +15,86 @@ public class HomeController : Controller
         _unitOfWork = unitOfWork;
         _logger = logger;
     }
-    #region Views
-    public IActionResult Index()
-    {
-        return View();
-    }
+    public IActionResult Index() => View();
 
-    #endregion
-
-    #region Methods
-    [HttpGet]
-    [Route("dashboards/clients")]
+    [HttpGet("dashboards/clients")]
     public async Task<IActionResult> CountClientsAsync()
     {
         try
         {
-            var clientCount = await _unitOfWork.Clients.CountAsync();
-            return Ok(clientCount);
+            var count = await _unitOfWork.Clients.CountAsync();
+            return Ok(count);
         }
-        catch (Exception e)
+        catch (Exception ex)
         {
-            _logger.LogError(e, "An error occurred while counting clients.");
-            throw;
+            _logger.LogError(ex, "Error counting clients");
+            return StatusCode(500, "An error occurred while processing your request.");
         }
     }
 
-    [HttpGet]
-    [Route("dashboards/riders")]
+    [HttpGet("dashboards/riders")]
     public async Task<IActionResult> CountRidersAsync()
     {
-        var riderCount = await _unitOfWork.Riders.CountAsync();
-        return Ok(riderCount);
+        try
+        {
+            var count = await _unitOfWork.Riders.CountAsync();
+            return Ok(count);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error counting riders");
+            return StatusCode(500, "An error occurred while processing your request.");
+        }
     }
 
-    [HttpGet]
-    [Route("dashboards/delivery-orders")]
+    [HttpGet("dashboards/delivery-orders")]
     public async Task<IActionResult> CountDeliveryOrdersAsync()
     {
-        var deliveryOrderCount = await _unitOfWork.DeliveryOrders.CountAsync();
-        return Ok(deliveryOrderCount);
+        try
+        {
+            var count = await _unitOfWork.DeliveryOrders.CountAsync();
+            return Ok(count);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error counting delivery orders");
+            return StatusCode(500, "An error occurred while processing your request.");
+        }
     }
 
-    [HttpGet]
-    [Route("dashboards/invoices")]
+    [HttpGet("dashboards/invoices")]
     public async Task<IActionResult> CountInvoicesAsync()
     {
-        var invoiceCount = await _unitOfWork.Invoices.CountAsync();
-        var signedInvoicesCount = await _unitOfWork.Invoices.CountSignedAsync();
-
-        return Ok(new
+        try
         {
-            Invoices = invoiceCount,
-            SignedInvoices = signedInvoicesCount
-        });
+            var invoiceCount = await _unitOfWork.Invoices.CountAsync();
+            var signedInvoicesCount = await _unitOfWork.Invoices.CountSignedAsync();
+
+            return Ok(new
+            {
+                Invoices = invoiceCount,
+                SignedInvoices = signedInvoicesCount
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error counting invoices");
+            return StatusCode(500, "An error occurred while processing your request.");
+        }
     }
 
-    [HttpGet]
-    [Route("dashboards/sales-persons")]
+    [HttpGet("dashboards/sales-persons")]
     public async Task<IActionResult> CountSalesPersonsAsync()
     {
-        var salesPersonCount = await _unitOfWork.SalesPersons.CountAsync();
-        return Ok(salesPersonCount);
+        try
+        {
+            var count = await _unitOfWork.SalesPersons.CountAsync();
+            return Ok(count);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error counting sales persons");
+            return StatusCode(500, "An error occurred while processing your request.");
+        }
     }
-    #endregion
 }

@@ -48,6 +48,7 @@ function Login() {
                     $('.error-message').append('<span class="mb-1">Ocurrio un error iniciando sesión.</span>');
                 }
 
+                $('.error-message').removeClass('d-none');
                 $('._login').empty().append('Iniciar Sesión');
                 UnlockForm();
             }

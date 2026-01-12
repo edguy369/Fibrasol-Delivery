@@ -34,15 +34,19 @@ builder.Services.ConfigureApplicationCookie(options =>
 var config = builder.Configuration;
 builder.Services.ConfigureDataAccessLayer(config);
 
-builder.Services.ConfigureDoSpaces(config["S3Config:AccessKey"],
-        config["S3Config:SecretKey"], config["S3Config:BucketName"],
-        config["S3Config:Root"], config["S3Config:EndpointUrl"],
-        config["S3Config:Region"], config["S3Config:UseCdn"]);
+builder.Services.ConfigureDoSpaces(config["S3Config:AccessKey"]!,
+        config["S3Config:SecretKey"]!, config["S3Config:BucketName"]!,
+        config["S3Config:Root"]!, config["S3Config:EndpointUrl"]!,
+        config["S3Config:Region"]!, config["S3Config:UseCdn"]!);
 
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-if (!app.Environment.IsDevelopment())
+if (app.Environment.IsDevelopment())
+{
+    app.UseDeveloperExceptionPage();
+}
+else
 {
     app.UseExceptionHandler("/Home/Error");
     // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.

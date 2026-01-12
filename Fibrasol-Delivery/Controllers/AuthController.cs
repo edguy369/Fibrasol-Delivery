@@ -8,46 +8,60 @@ public class AuthController : Controller
 {
     private readonly SignInManager<IdentityUser> _signInManager;
     private readonly UserManager<IdentityUser> _userManager;
+    private readonly ILogger<AuthController> _logger;
 
     public AuthController(SignInManager<IdentityUser> signInManager,
-            UserManager<IdentityUser> userManager)
+            UserManager<IdentityUser> userManager,
+            ILogger<AuthController> logger)
     {
         _signInManager = signInManager;
         _userManager = userManager;
+        _logger = logger;
     }
 
-    #region Views
     [Route("login")]
-    public IActionResult Index()
-    {
-        return View();
-    }
-    #endregion
+    public IActionResult Index() => View();
 
-
-    #region HTTP Methods
-    [HttpPost]
-    [Route("login")]
+    [HttpPost("login")]
     public async Task<IActionResult> LoginAsync([FromBody] LoginRequest request)
     {
-        var user = await _userManager.FindByEmailAsync(request.Email);
+        try
+        {
+            var user = await _userManager.FindByEmailAsync(request.Email);
+            if (user == null)
+            {
+                _logger.LogWarning("Login failed for email: {Email}", request.Email);
+                return Unauthorized();
+            }
 
-        if (user == null)
-            return Unauthorized();
+            var result = await _signInManager.PasswordSignInAsync(user.UserName!, request.Password, true, false);
+            if (!result.Succeeded)
+            {
+                _logger.LogWarning("Invalid password for email: {Email}", request.Email);
+                return Unauthorized();
+            }
 
-        var result = await _signInManager.PasswordSignInAsync(user.UserName, request.Password, true, false);
-        if (!result.Succeeded)
-            return Unauthorized();
-
-        return Ok();
+            return Ok();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during login for email: {Email}", request.Email);
+            return StatusCode(500, "An error occurred while processing your request.");
+        }
     }
 
-    [HttpPost]
-    [Route("logout")]
+    [HttpPost("logout")]
     public async Task<IActionResult> Logout()
     {
-        await _signInManager.SignOutAsync();
-        return RedirectToAction("Index", "Auth");
+        try
+        {
+            await _signInManager.SignOutAsync();
+            return RedirectToAction("Index", "Auth");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during logout");
+            return StatusCode(500, "An error occurred while processing your request.");
+        }
     }
-    #endregion
 }

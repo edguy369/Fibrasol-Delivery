@@ -7,59 +7,92 @@ namespace Fibrasol_Delivery.Controllers;
 public class RiderController : Controller
 {
     private readonly IUnitOfWork _unitOfWork;
-    public RiderController(IUnitOfWork unitOfWork)
+    private readonly ILogger<RiderController> _logger;
+
+    public RiderController(IUnitOfWork unitOfWork, ILogger<RiderController> logger)
     {
         _unitOfWork = unitOfWork;
+        _logger = logger;
     }
 
-    #region Views
     [Route("conductores")]
-    public IActionResult Index()
-    {
-        return View();
-    }
-    #endregion
+    public IActionResult Index() => View();
 
-    #region Methods
-    [HttpGet]
-    [Route("riders")]
+    [HttpGet("riders")]
     public async Task<IActionResult> GetAllAsync()
     {
-        var riderList = await _unitOfWork.Riders.GetAllAsync();
-        return Ok(riderList);
+        try
+        {
+            var riders = await _unitOfWork.Riders.GetAllAsync();
+            return Ok(riders);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving riders");
+            return StatusCode(500, "An error occurred while processing your request.");
+        }
     }
 
-    [HttpPost]
-    [Route("riders")]
+    [HttpPost("riders")]
     public async Task<IActionResult> CreateAsync([FromBody] RiderRequest request)
     {
-        var transactionResult = await _unitOfWork.Riders.CreateAsync(request);
-        if (transactionResult == 0)
-            return BadRequest();
+        try
+        {
+            var result = await _unitOfWork.Riders.CreateAsync(request);
+            if (result == 0)
+            {
+                _logger.LogWarning("Failed to create rider: {Name}", request.Name);
+                return BadRequest();
+            }
 
-        return Ok();
+            return Ok();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating rider: {Name}", request.Name);
+            return StatusCode(500, "An error occurred while processing your request.");
+        }
     }
 
-    [HttpPut]
-    [Route("riders/{id}")]
+    [HttpPut("riders/{id}")]
     public async Task<IActionResult> UpdateAsync(int id, [FromBody] RiderRequest request)
     {
-        var transactionResult = await _unitOfWork.Riders.UpdateAsync(id, request);
-        if (!transactionResult)
-            return BadRequest();
+        try
+        {
+            var result = await _unitOfWork.Riders.UpdateAsync(id, request);
+            if (!result)
+            {
+                _logger.LogWarning("Failed to update rider ID: {Id}", id);
+                return BadRequest();
+            }
 
-        return Ok();
+            return Ok();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating rider ID: {Id}", id);
+            return StatusCode(500, "An error occurred while processing your request.");
+        }
     }
 
-    [HttpDelete]
-    [Route("riders/{id}")]
-    public async Task<IActionResult> DeleteAsync(int id, [FromBody] RiderRequest request)
+    [HttpDelete("riders/{id}")]
+    public async Task<IActionResult> DeleteAsync(int id)
     {
-        var transactionResult = await _unitOfWork.Riders.DeleteAsync(id);
-        if (!transactionResult)
-            return BadRequest();
+        try
+        {
+            var result = await _unitOfWork.Riders.DeleteAsync(id);
+            if (!result)
+            {
+                _logger.LogWarning("Failed to delete rider ID: {Id}", id);
+                return BadRequest();
+            }
 
-        return Ok();
+            return Ok();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting rider ID: {Id}", id);
+            return StatusCode(500, "An error occurred while processing your request.");
+        }
     }
-    #endregion
 }
