@@ -482,3 +482,9 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
+
+# E2E Test screenshots
+Fibrasol-Delivery.E2E/screenshots/
+
+# Claude instructions
+CLAUDE.md

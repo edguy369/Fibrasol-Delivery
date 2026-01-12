@@ -5,6 +5,8 @@ VisualStudioVersion = 17.11.35219.272
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Fibrasol-Delivery", "Fibrasol-Delivery\Fibrasol-Delivery.csproj", "{18CFF248-7CD5-477A-8526-05DE2800FB08}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Fibrasol-Delivery.E2E", "Fibrasol-Delivery.E2E\Fibrasol-Delivery.E2E.csproj", "{A68178DA-4FFA-4338-A2E7-2ED231CA8888}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +17,10 @@ Global
 		{18CFF248-7CD5-477A-8526-05DE2800FB08}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{18CFF248-7CD5-477A-8526-05DE2800FB08}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{18CFF248-7CD5-477A-8526-05DE2800FB08}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A68178DA-4FFA-4338-A2E7-2ED231CA8888}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A68178DA-4FFA-4338-A2E7-2ED231CA8888}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A68178DA-4FFA-4338-A2E7-2ED231CA8888}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A68178DA-4FFA-4338-A2E7-2ED231CA8888}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

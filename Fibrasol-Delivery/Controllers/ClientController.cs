@@ -9,59 +9,92 @@ namespace Fibrasol_Delivery.Controllers;
 public class ClientController : Controller
 {
     private readonly IUnitOfWork _unitOfWork;
-    public ClientController(IUnitOfWork unitOfWork)
+    private readonly ILogger<ClientController> _logger;
+
+    public ClientController(IUnitOfWork unitOfWork, ILogger<ClientController> logger)
     {
         _unitOfWork = unitOfWork;
+        _logger = logger;
     }
 
-    #region Views
     [Route("clientes")]
-    public IActionResult Index()
-    {
-        return View();
-    }
-    #endregion
+    public IActionResult Index() => View();
 
-    #region Methods
-    [HttpGet]
-    [Route("clients")]
+    [HttpGet("clients")]
     public async Task<IActionResult> GetAllAsync()
     {
-        var clientList = await _unitOfWork.Clients.GetAllAsync();
-        return Ok(clientList);
+        try
+        {
+            var clients = await _unitOfWork.Clients.GetAllAsync();
+            return Ok(clients);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving clients");
+            return StatusCode(500, "An error occurred while processing your request.");
+        }
     }
 
-    [HttpPost]
-    [Route("clients")]
+    [HttpPost("clients")]
     public async Task<IActionResult> CreateAsync([FromBody] ClientRequest request)
     {
-        var transactionResult = await _unitOfWork.Clients.CreateAsync(request);
-        if (transactionResult == 0)
-            return BadRequest();
+        try
+        {
+            var result = await _unitOfWork.Clients.CreateAsync(request);
+            if (result == 0)
+            {
+                _logger.LogWarning("Failed to create client: {Name}", request.Name);
+                return BadRequest();
+            }
 
-        return Ok(transactionResult);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating client: {Name}", request.Name);
+            return StatusCode(500, "An error occurred while processing your request.");
+        }
     }
 
-    [HttpPut]
-    [Route("clients/{id}")]
+    [HttpPut("clients/{id}")]
     public async Task<IActionResult> UpdateAsync(int id, [FromBody] ClientRequest request)
     {
-        var transactionResult = await _unitOfWork.Clients.UpdateAsync(id, request);
-        if (!transactionResult)
-            return BadRequest();
+        try
+        {
+            var result = await _unitOfWork.Clients.UpdateAsync(id, request);
+            if (!result)
+            {
+                _logger.LogWarning("Failed to update client ID: {Id}", id);
+                return BadRequest();
+            }
 
-        return Ok();
+            return Ok();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating client ID: {Id}", id);
+            return StatusCode(500, "An error occurred while processing your request.");
+        }
     }
 
-    [HttpDelete]
-    [Route("clients/{id}")]
+    [HttpDelete("clients/{id}")]
     public async Task<IActionResult> DeleteAsync(int id)
     {
-        var transactionResult = await _unitOfWork.Clients.DeleteAsync(id);
-        if (!transactionResult)
-            return BadRequest();
+        try
+        {
+            var result = await _unitOfWork.Clients.DeleteAsync(id);
+            if (!result)
+            {
+                _logger.LogWarning("Failed to delete client ID: {Id}", id);
+                return BadRequest();
+            }
 
-        return Ok();
+            return Ok();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting client ID: {Id}", id);
+            return StatusCode(500, "An error occurred while processing your request.");
+        }
     }
-    #endregion
 }

@@ -7,7 +7,7 @@ public static class ServiceRegistration
 {
     public static void ConfigureDataAccessLayer(this IServiceCollection services, IConfiguration config)
     {
-        var connectionString = new ConnectionString(config["ConnectionString"]);
+        var connectionString = new ConnectionString(config["ConnectionString"]!);
         services.AddSingleton(connectionString);
 
         services.AddTransient<IRiderRepository, RiderRepository>();
