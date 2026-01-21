@@ -594,12 +594,6 @@ function checkFacturaChanges(comandaIndex, facturaIndex) {
     const originalSalesPersonId = parseInt(facturaCard.getAttribute('data-original-salesperson-id')) || 0;
 
     // For existing items, check if any changes were made
-    const hasChanges = attachmentChanged ||
-                       signedAttachmentChanged ||
-                       currentAddress !== originalAddress ||
-                       currentReference !== originalReference ||
-                       Math.abs(currentValue - originalValue) > 0.001 ||
-                       currentSalesPersonId !== originalSalesPersonId;
 
     if (hasChanges && currentStatus === 'existing') {
         facturaCard.setAttribute('data-factura-status', 'update');
@@ -949,8 +943,6 @@ function saveDeliveryOrder() {
         },
         error: function(xhr, status, error) {
             console.error('Error saving delivery order:', error);
-            console.error('Server response:', xhr.responseText);
-            FibrasolUtils.ui.showErrorMessage('Error al guardar: ' + (xhr.responseText || 'Error desconocido'));
         },
         complete: function() {
             FibrasolUtils.ui.setButtonLoading(saveButton, false);
