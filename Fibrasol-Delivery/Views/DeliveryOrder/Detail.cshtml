@@ -40,9 +40,13 @@
                 <div class="mb-3">
                     <label for="orderTotal" class="form-label">Total</label>
                     <div class="input-group">
-                        <span class="input-group-text">Q</span>
+                        <span class="input-group-text" id="orderTotalCurrency">Q</span>
                         <input type="number" class="form-control" id="orderTotal" step="0.01" min="0" disabled>
                     </div>
+                </div>
+                <div class="mb-3">
+                    <label for="orderConcept" class="form-label">Concepto del Itinerario</label>
+                    <textarea class="form-control" id="orderConcept" rows="3" placeholder="Ingrese el concepto del itinerario"></textarea>
                 </div>
             </div>
             <div class="col-md-6">
@@ -136,6 +140,9 @@
         // Global array to store SalesPersons
         window.salesPersons = [];
 
+        // Global variable to store the last selected currency
+        window.lastSelectedCurrency = 'Q';
+
         $(document).ready(function() {
             // Load SalesPersons on page load
             loadSalesPersons();
@@ -215,6 +222,7 @@
         }
         
         function createNewDeliveryOrder() {
+            console.log('Attempting to create new delivery order...');
             $.ajax({
                 url: '/delivery-orders',
                 type: 'POST',
@@ -223,6 +231,7 @@
                     Total: 0
                 }),
                 success: function(newOrderId) {
+                    console.log('Successfully created new delivery order with ID:', newOrderId);
                     // Update the order ID in the form
                     document.getElementById('orderId').value = newOrderId;
                     
@@ -234,7 +243,9 @@
                 },
                 error: function(xhr, status, error) {
                     console.error('Error creating new delivery order:', error);
-                    showErrorMessage('Error al crear nueva orden de entrega. Por favor, inténtelo de nuevo.');
+                    console.error('Status:', status);
+                    console.error('Response Text:', xhr.responseText);
+                    showErrorMessage('Error al crear nueva orden de entrega. Por favor, inténtelo de nuevo. Detalles: ' + xhr.responseText);
                 }
             });
         }
@@ -250,20 +261,31 @@
                         document.getElementById('pageTitle').textContent = 'Editar Constancia de Entrega #' + id;
                         document.getElementById('orderId').value = orderData.id;
                         document.getElementById('orderTotal').value = orderData.total.toFixed(2);
-                        
+
+                        // Set the currency
+                        if (orderData.currency) {
+                            window.lastSelectedCurrency = orderData.currency;
+                            document.getElementById('orderTotalCurrency').textContent = orderData.currency;
+                        }
+
+                        // Set the concept
+                        if (orderData.concept) {
+                            document.getElementById('orderConcept').value = orderData.concept;
+                        }
+
                         // Set the status value - ensure dropdown is populated first
                         const statusSelect = document.getElementById('orderStatus');
                         if (orderData.status.id) {
                             console.log('Setting status to:', orderData.status.name);
                             statusSelect.value = orderData.status.id;
                             
-                            // Verify the status was set
-                                if (statusSelect.value !== orderData.status.id) {
-                                console.warn('Status not set correctly. Available options:');
-                                for (let option of statusSelect.options) {
-                                    console.log(`Option value: ${option.value}, text: ${option.text}`);
-                                }
+                            // Verify the status was set (convert to string for comparison)
+                        if (statusSelect.value !== String(orderData.status.id)) {
+                            console.warn('Status not set correctly. Available options:');
+                            for (let option of statusSelect.options) {
+                                console.log(`Option value: ${option.value}, text: ${option.text}`);
                             }
+                        }
                         }
                         
                         // Set the global orderId for save operations
@@ -337,24 +359,12 @@
                         </button>
                     </div>
                     <div class="row">
-                        <div class="col-md-4">
-                            <label class="form-label">Cliente</label>
-                            <div class="client-search-container">
-                                <div class="input-group">
-                                    <input type="text" class="form-control backorder-client" value="${data ? (data.client ? data.client.name : '') : ''}" placeholder="Buscar cliente..." autocomplete="off" onkeyup="searchClients(this)" onfocus="searchClients(this)" onblur="hideClientDropdown(this)" onchange="checkBackorderChanges(${backorderIndex})">
-                                    <button class="btn btn-outline-primary" type="button" onclick="openCreateClientModal(${backorderIndex})" title="Crear nuevo cliente">
-                                        <i class="bi bi-plus"></i>
-                                    </button>
-                                </div>
-                                <input type="hidden" class="backorder-client-id" value="${data ? (data.client ? data.client.id : '') : ''}" onchange="checkBackorderChanges(${backorderIndex})">
-                                <div class="client-dropdown"></div>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
+                        <input type="hidden" class="backorder-client-id" value="${data ? (data.client ? data.client.id : '') : ''}">
+                        <div class="col-md-6">
                             <label class="form-label">No. Commanda</label>
                             <input type="text" class="form-control backorder-command" value="${data ? data.number : ''}" placeholder="Ingrese el número de commanda" onchange="checkBackorderChanges(${backorderIndex})">
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             <label class="form-label">Peso Total Toneladas</label>
                             <div class="input-group">
                                 <input type="number" class="form-control backorder-weight" value="${data ? data.weight.toFixed(3) : ''}" step="0.001" min="0" placeholder="0.000" onchange="checkBackorderChanges(${backorderIndex})">
@@ -457,14 +467,9 @@
             const facturasContainer = document.querySelector(`[data-comanda="${comandaIndex}"]`);
             const facturaIndex = facturasContainer.children.length;
 
-            // Get backorder's client to pre-fill invoice client if no data
-            const backorderCard = document.querySelector(`[data-index="${comandaIndex}"]`);
-            const backorderClientId = backorderCard ? backorderCard.querySelector('.backorder-client-id').value : '';
-            const backorderClientName = backorderCard ? backorderCard.querySelector('.backorder-client').value : '';
-
-            // Use invoice client if exists, otherwise fall back to backorder client
-            const invoiceClientId = data && data.client ? data.client.id : (data ? '' : backorderClientId);
-            const invoiceClientName = data && data.client ? data.client.name : (data ? '' : backorderClientName);
+            // Use invoice client if exists
+            const invoiceClientId = data && data.client ? data.client.id : '';
+            const invoiceClientName = data && data.client ? data.client.name : '';
 
             const facturaHtml = `
                 <div class="factura-card" data-factura-index="${facturaIndex}"
@@ -476,6 +481,7 @@
                      data-original-address="${data ? (data.address || '') : ''}"
                      data-original-reference="${data ? (data.reference || '') : ''}"
                      data-original-value="${data && data.value != null ? data.value : 0}"
+                     data-original-currency="${data && data.currency ? data.currency : 'Q'}"
                      data-original-salesperson-id="${data && data.salesPerson && data.salesPerson.id != null ? data.salesPerson.id : 0}">
                     <div class="factura-header">
                         <div class="d-flex justify-content-between align-items-center">
@@ -490,7 +496,7 @@
                             <label class="form-label">Cliente</label>
                             <div class="client-search-container">
                                 <div class="input-group">
-                                    <input type="text" class="form-control factura-client" value="${invoiceClientName}" placeholder="Buscar cliente..." autocomplete="off" onkeyup="searchClientsForInvoice(this)" onfocus="searchClientsForInvoice(this)" onblur="hideClientDropdownForInvoice(this)" onchange="checkFacturaChanges(${comandaIndex}, ${facturaIndex})">
+                                    <input type="text" class="form-control factura-client" value="${invoiceClientName}" placeholder="Buscar cliente..." autocomplete="off" onkeyup="searchClientsForInvoice(this)" onfocus="searchClientsForInvoice(this)" onblur="handleInvoiceClientBlur(this, ${comandaIndex}, ${facturaIndex})" oninput="clearInvoiceClientId(this, ${comandaIndex}, ${facturaIndex})" onchange="checkFacturaChanges(${comandaIndex}, ${facturaIndex})">
                                     <button class="btn btn-outline-primary" type="button" onclick="openCreateClientModalForInvoice(${comandaIndex}, ${facturaIndex})" title="Crear nuevo cliente">
                                         <i class="bi bi-plus"></i>
                                     </button>
@@ -519,9 +525,9 @@
                         <div class="col-md-4">
                             <label class="form-label">Valor</label>
                             <div class="input-group">
-                                <select class="form-select factura-currency" style="max-width: 70px;" onchange="checkFacturaChanges(${comandaIndex}, ${facturaIndex})">
-                                    <option value="Q" ${!data || data.currency === 'Q' ? 'selected' : ''}>Q</option>
-                                    <option value="USD" ${data && data.currency === 'USD' ? 'selected' : ''}>$</option>
+                                <select class="form-select factura-currency" style="max-width: 70px;" onchange="updateAllCurrencies(this.value); updateOrderTotal(); checkFacturaChanges(${comandaIndex}, ${facturaIndex})">
+                                    <option value="Q">Q</option>
+                                    <option value="$">$</option>
                                 </select>
                                 <input type="number" class="form-control factura-value" value="${data ? data.value.toFixed(2) : ''}" step="0.01" min="0" placeholder="0.00" onchange="updateOrderTotal(); checkFacturaChanges(${comandaIndex}, ${facturaIndex})" oninput="updateOrderTotal()">
                             </div>
@@ -579,6 +585,16 @@
 
             populateSalesPersonDropdown(salesPersonSelect, selectedSalesPersonId);
 
+            // Set the currency selector value
+            const currencySelect = newFacturaCard.querySelector('.factura-currency');
+            if (data && data.currency) {
+                currencySelect.value = data.currency;
+                window.lastSelectedCurrency = data.currency;
+                console.log('Loaded invoice currency:', data.currency);
+            } else {
+                currencySelect.value = window.lastSelectedCurrency || 'Q';
+            }
+
             // Update total after adding factura
             updateOrderTotal();
         }
@@ -625,20 +641,47 @@
             });
         }
         
+        function updateAllCurrencies(newCurrency) {
+            window.lastSelectedCurrency = newCurrency;
+            // Update all currency selectors to the new value and mark as changed
+            const allFacturaCards = document.querySelectorAll('.factura-card');
+            allFacturaCards.forEach(facturaCard => {
+                const select = facturaCard.querySelector('.factura-currency');
+                if (select) {
+                    select.value = newCurrency;
+                }
+                // Mark each factura as changed
+                const comandaIndex = parseInt(facturaCard.closest('.backorder-card').getAttribute('data-index'));
+                const facturaIndex = parseInt(facturaCard.getAttribute('data-factura-index'));
+                checkFacturaChanges(comandaIndex, facturaIndex);
+            });
+        }
+
         function updateOrderTotal() {
             let totalValue = 0;
+            let firstCurrency = 'Q'; // Default currency
+            let foundCurrency = false;
             const backorders = document.querySelectorAll('.backorder-card');
 
             backorders.forEach(backorder => {
-                // Get all factura values within this comanda
-                const facturaValues = backorder.querySelectorAll('.factura-value');
-                facturaValues.forEach(facturaValue => {
+                // Get all factura cards within this comanda
+                const facturaCards = backorder.querySelectorAll('.factura-card');
+                facturaCards.forEach(facturaCard => {
+                    const facturaValue = facturaCard.querySelector('.factura-value');
+                    const currencySelect = facturaCard.querySelector('.factura-currency');
                     const value = parseFloat(facturaValue.value) || 0;
                     totalValue += value;
+
+                    // Get the first currency found that has a value
+                    if (!foundCurrency && currencySelect) {
+                        firstCurrency = currencySelect.value === '$' ? '$' : 'Q';
+                        foundCurrency = true;
+                    }
                 });
             });
 
             document.getElementById('orderTotal').value = totalValue.toFixed(2);
+            document.getElementById('orderTotalCurrency').textContent = firstCurrency;
         }
 
         function handleFileChange(fileInput, comandaIndex, facturaIndex, type) {
@@ -727,26 +770,32 @@
             if (currentStatus === 'new') return; // Skip checking for new items
 
             // Get current values
+            const currentClientId = facturaCard.querySelector('.factura-client-id').value || '';
             const currentAddress = facturaCard.querySelector('.factura-direccion').value;
             const currentReference = facturaCard.querySelector('.factura-reference').value;
             const currentValue = parseFloat(facturaCard.querySelector('.factura-value').value) || 0;
             const currentSalesPersonId = parseInt(facturaCard.querySelector('.factura-salesperson').value) || 0;
+            const currentCurrency = facturaCard.querySelector('.factura-currency').value || 'Q';
             const attachmentChanged = facturaCard.querySelector('.factura-attachment-changed').value === 'true';
             const signedAttachmentChanged = facturaCard.querySelector('.factura-signed-attachment-changed').value === 'true';
 
             // Get original values from data attributes
+            const originalClientId = facturaCard.getAttribute('data-original-client-id') || '';
             const originalAddress = facturaCard.getAttribute('data-original-address') || '';
             const originalReference = facturaCard.getAttribute('data-original-reference') || '';
             const originalValue = parseFloat(facturaCard.getAttribute('data-original-value')) || 0;
             const originalSalesPersonId = parseInt(facturaCard.getAttribute('data-original-salesperson-id')) || 0;
+            const originalCurrency = facturaCard.getAttribute('data-original-currency') || 'Q';
 
             // For existing items, check if any changes were made
             const hasChanges = attachmentChanged ||
                                signedAttachmentChanged ||
+                               currentClientId !== originalClientId ||
                                currentAddress !== originalAddress ||
                                currentReference !== originalReference ||
                                Math.abs(currentValue - originalValue) > 0.001 ||
-                               currentSalesPersonId !== originalSalesPersonId;
+                               currentSalesPersonId !== originalSalesPersonId ||
+                               currentCurrency !== originalCurrency;
 
             if (hasChanges && currentStatus === 'existing') {
                 facturaCard.setAttribute('data-factura-status', 'update');
@@ -1068,6 +1117,9 @@
             clientIdInput.value = client.id;
             dropdown.style.display = 'none';
 
+            // Reset manual input flag since user selected from dropdown
+            input.dataset.manualInput = 'false';
+
             // Trigger change detection
             const facturaCard = input.closest('.factura-card');
             if (facturaCard) {
@@ -1082,6 +1134,94 @@
                 const dropdown = input.closest('.client-search-container').querySelector('.client-dropdown');
                 dropdown.style.display = 'none';
             }, 200);
+        }
+
+        // Clear invoice client ID when user types manually (not selecting from dropdown)
+        function clearInvoiceClientId(input, comandaIndex, facturaIndex) {
+            const container = input.closest('.client-search-container');
+            const clientIdInput = container.querySelector('.factura-client-id');
+            // Mark that the user is typing manually
+            input.dataset.manualInput = 'true';
+        }
+
+        // Handle blur event for invoice client field - search client by name if typed manually
+        function handleInvoiceClientBlur(input, comandaIndex, facturaIndex) {
+            // First hide the dropdown
+            setTimeout(() => {
+                const dropdown = input.closest('.client-search-container').querySelector('.client-dropdown');
+                dropdown.style.display = 'none';
+            }, 200);
+
+            // If user typed manually, try to find the client by name or create new one
+            if (input.dataset.manualInput === 'true') {
+                const container = input.closest('.client-search-container');
+                const clientIdInput = container.querySelector('.factura-client-id');
+                const typedName = input.value.trim();
+
+                if (typedName) {
+                    // Search for exact match (case insensitive)
+                    let foundClient = clientsData.find(client =>
+                        client.name.toLowerCase() === typedName.toLowerCase()
+                    );
+
+                    if (foundClient) {
+                        // Found a matching client - set the ID and update the name to the exact match
+                        clientIdInput.value = foundClient.id;
+                        input.value = foundClient.name;
+                        console.log('Client found by name:', foundClient.name, 'ID:', foundClient.id);
+
+                        // Reset the manual input flag and check for changes
+                        input.dataset.manualInput = 'false';
+                        checkFacturaChanges(comandaIndex, facturaIndex);
+                    } else {
+                        // No matching client found - create new client automatically
+                        console.log('Creating new client:', typedName);
+                        createClientAutomatically(typedName, input, clientIdInput, comandaIndex, facturaIndex);
+                    }
+                } else {
+                    // Empty input - clear the ID
+                    clientIdInput.value = '';
+                    input.dataset.manualInput = 'false';
+                    checkFacturaChanges(comandaIndex, facturaIndex);
+                }
+            }
+        }
+
+        // Create client automatically when user types a new name
+        function createClientAutomatically(clientName, input, clientIdInput, comandaIndex, facturaIndex) {
+            $.ajax({
+                url: '/clients',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ Name: clientName }),
+                success: function(newClientId) {
+                    console.log('Client created automatically with ID:', newClientId);
+
+                    // Create client object and add to global list
+                    const newClient = {
+                        id: newClientId,
+                        name: clientName
+                    };
+                    clientsData.push(newClient);
+
+                    // Set the ID in the form
+                    clientIdInput.value = newClientId;
+
+                    // Reset the manual input flag and check for changes
+                    input.dataset.manualInput = 'false';
+                    checkFacturaChanges(comandaIndex, facturaIndex);
+
+                    console.log('New client added to list:', clientName, 'ID:', newClientId);
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error creating client automatically:', error);
+                    // Clear the ID on error
+                    clientIdInput.value = '';
+                    input.dataset.manualInput = 'false';
+                    checkFacturaChanges(comandaIndex, facturaIndex);
+                    showErrorMessage('Error al crear el cliente "' + clientName + '". Por favor, inténtelo de nuevo.');
+                }
+            });
         }
 
         // Store invoice context for create client modal
@@ -1120,6 +1260,8 @@
             const formData = {
                 total: parseFloat(document.getElementById('orderTotal').value),
                 statusId: parseInt(statusSelect.value),
+                currency: window.lastSelectedCurrency || 'Q',
+                concept: document.getElementById('orderConcept').value || null,
                 riders: getRidersData(),
                 backOrders: []
             };
@@ -1133,7 +1275,7 @@
                 const totalWeight = parseFloat(backorder.querySelector('.backorder-weight').value) || 0;
                 const objectStatus = backorder.getAttribute('data-object-status');
 
-                if (clientId && commandNumber && totalWeight > 0) {
+                if (commandNumber && totalWeight > 0) {
                     // Collect invoices for this backorder
                     const invoices = [];
                     const facturaCards = backorder.querySelectorAll('.factura-card');

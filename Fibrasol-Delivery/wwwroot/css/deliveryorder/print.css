@@ -1,7 +1,18 @@
-body {
+html, body {
+    margin: 0;
+    padding: 0;
     font-family: Arial, sans-serif;
-    margin: 20px;
-    font-size: 12px;
+    font-size: 14px;
+}
+
+body {
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+.page-container {
+    display: flex;
+    flex-direction: column;
 }
 
 .header {
@@ -27,6 +38,8 @@ body {
     padding: 5px 10px;
     display: inline-block;
     margin-left: 10px;
+    min-width: 80px;
+    text-align: center;
 }
 
 .delivery-table {
@@ -47,11 +60,17 @@ body {
 .delivery-table th {
     background-color: #f0f0f0;
     font-weight: bold;
-    font-size: 11px;
+    font-size: 13px;
+}
+
+.table-title {
+    font-size: 16px;
+    font-weight: bold;
+    background-color: #e0e0e0;
 }
 
 .delivery-table td {
-    font-size: 10px;
+    font-size: 13px;
 }
 
 .client-cell {
@@ -69,6 +88,23 @@ body {
 .total-row {
     font-weight: bold;
     border-top: 2px solid black;
+}
+
+.concept-section {
+    margin-top: 20px;
+    margin-bottom: 20px;
+}
+
+.concept-label {
+    margin-bottom: 5px;
+}
+
+.concept-box {
+    border: 1px solid black;
+    min-height: 50px;
+    width: 100%;
+    padding: 8px;
+    box-sizing: border-box;
 }
 
 .signatures {

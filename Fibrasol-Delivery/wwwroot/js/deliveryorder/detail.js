@@ -137,13 +137,13 @@ function loadOrderData(id) {
                     console.log('Setting status to:', orderData.status.name);
                     statusSelect.value = orderData.status.id;
 
-                    // Verify the status was set
-                        if (statusSelect.value !== orderData.status.id) {
-                        console.warn('Status not set correctly. Available options:');
-                        for (let option of statusSelect.options) {
-                            console.log(`Option value: ${option.value}, text: ${option.text}`);
-                        }
+                    // Verify the status was set (convert to string for comparison)
+                if (statusSelect.value !== String(orderData.status.id)) {
+                    console.warn('Status not set correctly. Available options:');
+                    for (let option of statusSelect.options) {
+                        console.log(`Option value: ${option.value}, text: ${option.text}`);
                     }
+                }
                 }
 
                 // Set the global orderId for save operations
@@ -594,12 +594,14 @@ function checkFacturaChanges(comandaIndex, facturaIndex) {
     const originalSalesPersonId = parseInt(facturaCard.getAttribute('data-original-salesperson-id')) || 0;
 
     // For existing items, check if any changes were made
-    const hasChanges = attachmentChanged ||
-                       signedAttachmentChanged ||
-                       currentAddress !== originalAddress ||
-                       currentReference !== originalReference ||
-                       Math.abs(currentValue - originalValue) > 0.001 ||
-                       currentSalesPersonId !== originalSalesPersonId;
+    const hasChanges = (
+        currentAddress !== originalAddress ||
+        currentReference !== originalReference ||
+        Math.abs(currentValue - originalValue) > 0.001 ||
+        currentSalesPersonId !== originalSalesPersonId ||
+        attachmentChanged ||
+        signedAttachmentChanged
+    );
 
     if (hasChanges && currentStatus === 'existing') {
         facturaCard.setAttribute('data-factura-status', 'update');
@@ -949,8 +951,6 @@ function saveDeliveryOrder() {
         },
         error: function(xhr, status, error) {
             console.error('Error saving delivery order:', error);
-            console.error('Server response:', xhr.responseText);
-            FibrasolUtils.ui.showErrorMessage('Error al guardar: ' + (xhr.responseText || 'Error desconocido'));
         },
         complete: function() {
             FibrasolUtils.ui.setButtonLoading(saveButton, false);

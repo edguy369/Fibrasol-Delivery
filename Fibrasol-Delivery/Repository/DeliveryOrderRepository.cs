@@ -94,13 +94,13 @@ public class DeliveryOrderRepository : IDeliveryOrderRepository
         // Query with named columns for robust mapping
         const string sql = @"
             SELECT
-                a.Id AS OrderId, a.Created, a.Total, a.StatusId,
+                a.Id AS OrderId, a.Created, a.Total, a.Currency AS OrderCurrency, a.Concept AS OrderConcept, a.StatusId,
                 b.Id AS StatusId2, b.Name AS StatusName,
                 f.Id AS RiderAssignationId,
                 g.Id AS RiderId, g.Name AS RiderName,
                 c.Id AS BackorderId, c.Number AS BackorderNumber, c.Weight AS BackorderWeight,
                 d.Id AS BackOrderClientId, d.Name AS BackOrderClientName,
-                e.Id AS InvoiceId, e.Address, e.Reference, e.Value, e.Attatchment, e.SignedAttatchment, e.Currency,
+                e.Id AS InvoiceId, e.Address, e.Reference, e.Value, e.Attatchment, e.SignedAttatchment, e.Currency AS InvoiceCurrency,
                 ic.Id AS InvoiceClientId, ic.Name AS InvoiceClientName,
                 h.Id AS SalesPersonId2, h.Name AS SalesPersonName
             FROM DeliveryOrder a
@@ -129,6 +129,8 @@ public class DeliveryOrderRepository : IDeliveryOrderRepository
                     Id = deliveryOrderId,
                     Created = (DateTime)dict["Created"],
                     Total = (double)dict["Total"],
+                    Currency = dict["OrderCurrency"] as string ?? "Q",
+                    Concept = dict["OrderConcept"] as string,
                     Status = new DeliveryOrderStatusModel
                     {
                         Id = (int)dict["StatusId2"],
@@ -194,7 +196,7 @@ public class DeliveryOrderRepository : IDeliveryOrderRepository
                         Value = (double)dict["Value"],
                         Attatchment = dict["Attatchment"] as string,
                         SignedAttatchment = dict["SignedAttatchment"] as string,
-                        Currency = (string)dict["Currency"]
+                        Currency = dict["InvoiceCurrency"] as string ?? "Q"
                     };
 
                     // Map Invoice Client
@@ -238,7 +240,9 @@ public class DeliveryOrderRepository : IDeliveryOrderRepository
             {
                 pId = id,
                 pStatusId = request.StatusId,
-                pTotal = request.Total
+                pTotal = request.Total,
+                pCurrency = request.Currency,
+                pConcept = request.Concept
             },
             commandType: CommandType.StoredProcedure);
         return result != 0;

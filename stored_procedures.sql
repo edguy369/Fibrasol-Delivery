@@ -214,7 +214,7 @@ DROP PROCEDURE IF EXISTS sp_DeliveryOrder_GetAll$$
 CREATE PROCEDURE sp_DeliveryOrder_GetAll()
 BEGIN
     SELECT
-        a.Id, a.Created, a.Total, a.StatusId,
+        a.Id, a.Created, a.Total, a.Currency, a.StatusId,
         b.Id, b.Name
     FROM DeliveryOrder a
     INNER JOIN DeliveryOrderStatus b ON a.StatusId = b.Id;
@@ -259,9 +259,9 @@ BEGIN
 END$$
 
 DROP PROCEDURE IF EXISTS sp_DeliveryOrder_Update$$
-CREATE PROCEDURE sp_DeliveryOrder_Update(IN pId INT, IN pStatusId INT, IN pTotal DOUBLE)
+CREATE PROCEDURE sp_DeliveryOrder_Update(IN pId INT, IN pStatusId INT, IN pTotal DOUBLE, IN pCurrency VARCHAR(3))
 BEGIN
-    UPDATE DeliveryOrder SET StatusId = pStatusId, Total = pTotal WHERE Id = pId;
+    UPDATE DeliveryOrder SET StatusId = pStatusId, Total = pTotal, Currency = pCurrency WHERE Id = pId;
     SELECT ROW_COUNT() AS AffectedRows;
 END$$
 
@@ -272,8 +272,9 @@ END$$
 DROP PROCEDURE IF EXISTS sp_BackOrder_Create$$
 CREATE PROCEDURE sp_BackOrder_Create(IN pClientId INT, IN pDeliveryOrderId INT, IN pNumber VARCHAR(255), IN pWeight DOUBLE)
 BEGIN
+    -- NULLIF converts 0 to NULL for optional ClientId
     INSERT INTO BackOrder (ClientId, DeliveryOrderId, Number, Weight)
-    VALUES (pClientId, pDeliveryOrderId, pNumber, pWeight);
+    VALUES (NULLIF(pClientId, 0), pDeliveryOrderId, pNumber, pWeight);
     SELECT LAST_INSERT_ID() AS Id;
 END$$
 
@@ -287,7 +288,8 @@ END$$
 DROP PROCEDURE IF EXISTS sp_BackOrder_Update$$
 CREATE PROCEDURE sp_BackOrder_Update(IN pId INT, IN pClientId INT, IN pNumber VARCHAR(255), IN pWeight DOUBLE)
 BEGIN
-    UPDATE BackOrder SET ClientId = pClientId, Number = pNumber, Weight = pWeight WHERE Id = pId;
+    -- NULLIF converts 0 to NULL for optional ClientId
+    UPDATE BackOrder SET ClientId = NULLIF(pClientId, 0), Number = pNumber, Weight = pWeight WHERE Id = pId;
     SELECT ROW_COUNT() AS AffectedRows;
 END$$
 

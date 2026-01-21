@@ -153,16 +153,15 @@ public class DeliveryOrderController : Controller
                     else if (backOrder.ObjectStatus == "delete")
                         _ = await _unitOfWork.BackOrders.DeleteAsync(backOrder.Id);
 
-                    if (backOrder.Invoices != null)
+                if (backOrder.Invoices != null)
+                {
+                    foreach (var invoice in backOrder.Invoices)
                     {
-                        foreach (var invoice in backOrder.Invoices)
+                        if (invoice.ObjectStatus == "new")
                         {
-                            if (invoice.ObjectStatus == "new")
-                            {
-                                _logger.LogInformation("Creating new invoice for backorder {BackOrderId}", backOrderId);
-
-                                if (invoice.SalesPersonId <= 0)
-                                    return BadRequest($"SalesPersonId is required for invoice in backorder {backOrder.Id}");
+                            // Validate SalesPersonId for new invoices
+                            if (invoice.SalesPersonId <= 0)
+                                return BadRequest($"SalesPersonId is required for invoice in backorder {backOrder.Id}");
 
                                 if (!string.IsNullOrEmpty(invoice.Attatchment))
                                 {
@@ -171,35 +170,21 @@ public class DeliveryOrderController : Controller
                                         invoice.Attatchment = uploadResult.Path;
                                 }
 
-                                if (!string.IsNullOrEmpty(invoice.SignedAttatchment))
-                                {
-                                    var uploadResult = await _doSpaces.UploadFileAsync(invoice.SignedAttatchment, "facturas-firmadas");
-                                    if (uploadResult.Success)
-                                        invoice.SignedAttatchment = uploadResult.Path;
-                                }
-                                invoice.BackorderId = backOrderId;
-
-                                _logger.LogInformation("Invoice data: BackorderId={BackorderId}, ClientId={ClientId}, SalesPersonId={SalesPersonId}, Address={Address}",
-                                    invoice.BackorderId, invoice.ClientId, invoice.SalesPersonId, invoice.Address);
-
-                                try
-                                {
-                                    _ = await _unitOfWork.Invoices.CreateAsync(invoice);
-                                    _logger.LogInformation("Invoice created successfully");
-                                }
-                                catch (Exception invoiceEx)
-                                {
-                                    _logger.LogError(invoiceEx, "Error creating invoice");
-                                    return BadRequest($"Error creando factura: {invoiceEx.Message} | Inner: {invoiceEx.InnerException?.Message}");
-                                }
-                            }
-
-                            if (invoice.ObjectStatus == "update")
+                            if (!String.IsNullOrEmpty(invoice.SignedAttatchment))
                             {
-                                _logger.LogInformation("Updating invoice {InvoiceId}", invoice.Id);
+                                var uploadImageResult = await _doSpaces.UploadFileAsync(invoice.SignedAttatchment, "facturas-firmadas");
+                                if (uploadImageResult.Success)
+                                    invoice.SignedAttatchment = uploadImageResult.Path;
+                            }
+                            invoice.BackorderId = backOrderId;
+                            _ = await _unitOfWork.Invoices.CreateAsync(invoice);
+                        }
 
-                                if (invoice.SalesPersonId <= 0)
-                                    return BadRequest($"SalesPersonId is required for invoice {invoice.Id}");
+                        if (invoice.ObjectStatus == "update")
+                        {
+                            // Validate SalesPersonId for updated invoices
+                            if (invoice.SalesPersonId <= 0)
+                                return BadRequest($"SalesPersonId is required for invoice {invoice.Id}");
 
                                 if (invoice.AttatchmentChanged && !string.IsNullOrEmpty(invoice.Attatchment))
                                 {
@@ -215,12 +200,8 @@ public class DeliveryOrderController : Controller
                                         invoice.SignedAttatchment = uploadResult.Path;
                                 }
 
-                                _logger.LogInformation("Invoice update data: Id={Id}, SalesPersonId={SalesPersonId}, Address={Address}",
-                                    invoice.Id, invoice.SalesPersonId, invoice.Address);
-
-                                _ = await _unitOfWork.Invoices.UpdateAsync(invoice.Id, invoice);
-                                _logger.LogInformation("Invoice {InvoiceId} updated successfully", invoice.Id);
-                            }
+                            _ = await _unitOfWork.Invoices.UpdateAsync(invoice.Id, invoice);
+                        }
 
                             if (invoice.ObjectStatus == "delete")
                             {
@@ -240,11 +221,8 @@ public class DeliveryOrderController : Controller
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating delivery order ID: {Id}", id);
-            var fullError = $"ERROR_DETALLADO: {ex.Message}";
-            if (ex.InnerException != null)
-                fullError += $" | INNER: {ex.InnerException.Message}";
-            return StatusCode(500, fullError);
+            // Log the exception here if you have logging configured
+            return StatusCode(500, $"Internal server error: {ex.Message}");
         }
     }
 
