@@ -301,3 +301,32 @@
     font-size: 0.8rem;
     padding: 0.4rem 0.8rem;
 }
+
+/* Columna Itinerario */
+.itinerario-column {
+    width: 200px !important;
+    max-width: 200px !important;
+    position: relative;
+}
+
+.itinerario-text {
+    display: block;
+    width: 200px;
+    max-width: 200px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.itinerario-column:hover .itinerario-text {
+    white-space: normal;
+    overflow: visible;
+    position: absolute;
+    background-color: #f8fafc;
+    z-index: 10;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    border-radius: 4px;
+    padding: 5px;
+    min-width: 200px;
+    max-width: 350px;
+}

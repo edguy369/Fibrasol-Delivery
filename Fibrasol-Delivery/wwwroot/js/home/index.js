@@ -1,5 +1,6 @@
 document.addEventListener('DOMContentLoaded', function() {
     loadDashboardData();
+    loadUnsignedOrders();
     updateTimestamp();
 });
 
@@ -79,3 +80,72 @@ setInterval(function() {
     loadDashboardData();
     updateTimestamp();
 }, 300000);
+
+let unsignedOrdersTable = null;
+
+async function loadUnsignedOrders() {
+    try {
+        const orders = await FibrasolUtils.api.get('/dashboards/unsigned-orders');
+        initUnsignedOrdersTable(orders);
+    } catch (error) {
+        console.error('Error loading unsigned orders:', error);
+    }
+}
+
+function initUnsignedOrdersTable(data) {
+    if (unsignedOrdersTable) {
+        unsignedOrdersTable.clear();
+        unsignedOrdersTable.rows.add(data);
+        unsignedOrdersTable.draw();
+        return;
+    }
+
+    unsignedOrdersTable = $('#unsignedOrdersTable').DataTable({
+        data: data,
+        columns: [
+            { data: 'id' },
+            {
+                data: 'concept',
+                width: '200px',
+                className: 'itinerario-column',
+                render: function(data) {
+                    var text = data || '-';
+                    return '<span class="itinerario-text" title="' + text + '">' + text + '</span>';
+                }
+            },
+            {
+                data: 'status',
+                render: function(data) {
+                    return data ? `<span class="badge bg-info">${data.name}</span>` : '-';
+                }
+            },
+            {
+                data: 'created',
+                render: function(data) {
+                    return FibrasolUtils.dates.formatDateTime(data);
+                }
+            },
+            {
+                data: null,
+                render: function(data) {
+                    return FibrasolUtils.currency.formatWithSymbol(data.total, data.currency || 'Q');
+                }
+            },
+            {
+                data: 'id',
+                render: function(data) {
+                    return `
+                        <a href="/constancias/${data}" class="btn btn-sm btn-primary" title="Ver detalle">
+                            <i class="bi bi-eye"></i>
+                        </a>
+                    `;
+                }
+            }
+        ],
+        language: {
+            url: '/lib/datatables/i18n/es-ES.json'
+        },
+        order: [[3, 'desc']],
+        responsive: true
+    });
+}

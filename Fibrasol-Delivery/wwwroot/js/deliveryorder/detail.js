@@ -496,13 +496,16 @@ function updateOrderTotal() {
 
 function handleFileChange(fileInput, comandaIndex, facturaIndex, type) {
     const file = fileInput.files[0];
+    console.log('handleFileChange called:', { comandaIndex, facturaIndex, type, file: file ? file.name : 'no file' });
     if (!file) return;
 
     const reader = new FileReader();
     reader.onload = function(e) {
         const base64DataUrl = e.target.result; // Keep the full data URL format: data:image/png;base64,iVBORw0KG...
+        console.log('File read complete. Base64 length:', base64DataUrl.length);
 
         const facturaCard = document.querySelector(`[data-comanda="${comandaIndex}"] [data-factura-index="${facturaIndex}"]`);
+        console.log('Found facturaCard:', facturaCard ? 'yes' : 'NO - selector failed!');
         if (facturaCard) {
             const documentContainer = type === 'attachment' ?
                 facturaCard.querySelector('.col-md-4:nth-child(2) .document-container') :
@@ -511,9 +514,11 @@ function handleFileChange(fileInput, comandaIndex, facturaIndex, type) {
             if (type === 'attachment') {
                 facturaCard.querySelector('.factura-attachment-base64').value = base64DataUrl;
                 facturaCard.querySelector('.factura-attachment-changed').value = 'true';
+                console.log('Attachment saved. Changed flag:', facturaCard.querySelector('.factura-attachment-changed').value);
             } else if (type === 'signed') {
                 facturaCard.querySelector('.factura-signed-attachment-base64').value = base64DataUrl;
                 facturaCard.querySelector('.factura-signed-attachment-changed').value = 'true';
+                console.log('Signed attachment saved. Changed flag:', facturaCard.querySelector('.factura-signed-attachment-changed').value);
             }
 
             // Replace file input with document link
@@ -612,6 +617,7 @@ function checkFacturaChanges(comandaIndex, facturaIndex) {
 
 function getFacturaData(comandaIndex, facturaIndex) {
     const facturaCard = document.querySelector(`[data-comanda="${comandaIndex}"] [data-factura-index="${facturaIndex}"]`);
+    console.log('getFacturaData:', { comandaIndex, facturaIndex, found: !!facturaCard });
     if (!facturaCard) return null;
 
     const facturaId = parseInt(facturaCard.getAttribute('data-factura-id')) || 0;
@@ -624,6 +630,15 @@ function getFacturaData(comandaIndex, facturaIndex) {
     const attachmentChanged = facturaCard.querySelector('.factura-attachment-changed').value === 'true';
     const signedAttachmentChanged = facturaCard.querySelector('.factura-signed-attachment-changed').value === 'true';
     const objectStatus = facturaCard.getAttribute('data-factura-status');
+
+    console.log('Factura data collected:', {
+        facturaId,
+        objectStatus,
+        attachmentLength: attachment ? attachment.length : 0,
+        signedAttachmentLength: signedAttachment ? signedAttachment.length : 0,
+        attachmentChanged,
+        signedAttachmentChanged
+    });
 
     return {
         id: facturaId,

@@ -689,8 +689,14 @@
             if (!file) return;
 
             const reader = new FileReader();
+
+            reader.onerror = function(e) {
+                console.error('Error al leer el archivo:', reader.error.message);
+                alert('No se pudo leer el archivo. Asegúrese de que no esté abierto en otra aplicación.');
+            };
+
             reader.onload = function(e) {
-                const base64DataUrl = e.target.result; // Keep the full data URL format: data:image/png;base64,iVBORw0KG...
+                const base64DataUrl = e.target.result;
 
                 const facturaCard = document.querySelector(`[data-comanda="${comandaIndex}"] [data-factura-index="${facturaIndex}"]`);
                 if (facturaCard) {

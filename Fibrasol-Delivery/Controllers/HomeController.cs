@@ -97,4 +97,19 @@ public class HomeController : Controller
             return StatusCode(500, "An error occurred while processing your request.");
         }
     }
+
+    [HttpGet("dashboards/unsigned-orders")]
+    public async Task<IActionResult> GetUnsignedOrdersAsync()
+    {
+        try
+        {
+            var orders = await _unitOfWork.DeliveryOrders.GetAllUnsignedAsync();
+            return Ok(orders);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting unsigned orders");
+            return StatusCode(500, "An error occurred while processing your request.");
+        }
+    }
 }

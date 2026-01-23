@@ -223,14 +223,16 @@ END$$
 DROP PROCEDURE IF EXISTS sp_DeliveryOrder_GetAllUnsigned$$
 CREATE PROCEDURE sp_DeliveryOrder_GetAllUnsigned()
 BEGIN
-    SELECT
-        a.Id, a.Created, a.Total, a.StatusId,
+    SELECT DISTINCT
+        a.Id, a.Created, a.Total, a.Currency, a.Concept, a.StatusId,
         b.Id, b.Name
     FROM DeliveryOrder a
     INNER JOIN DeliveryOrderStatus b ON a.StatusId = b.Id
-    LEFT JOIN BackOrder c ON a.Id = c.DeliveryOrderId
-    LEFT JOIN Invoice e ON e.BackorderId = c.Id
-    WHERE e.SignedAttatchment = '';
+    INNER JOIN BackOrder c ON a.Id = c.DeliveryOrderId
+    INNER JOIN Invoice e ON e.BackorderId = c.Id
+    WHERE e.Attatchment IS NOT NULL
+      AND e.Attatchment != ''
+      AND (e.SignedAttatchment IS NULL OR e.SignedAttatchment = '');
 END$$
 
 DROP PROCEDURE IF EXISTS sp_DeliveryOrder_GetById$$
