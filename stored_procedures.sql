@@ -214,7 +214,7 @@ DROP PROCEDURE IF EXISTS sp_DeliveryOrder_GetAll$$
 CREATE PROCEDURE sp_DeliveryOrder_GetAll()
 BEGIN
     SELECT
-        a.Id, a.Created, a.Total, a.Currency, a.StatusId,
+        a.Id, a.Created, a.Total, a.Currency, a.Concept, a.StatusId,
         b.Id, b.Name
     FROM DeliveryOrder a
     INNER JOIN DeliveryOrderStatus b ON a.StatusId = b.Id;

@@ -21,6 +21,7 @@
         <thead>
             <tr>
                 <th>ID</th>
+                <th>Itinerario</th>
                 <th>Estado</th>
                 <th>Fecha Creación</th>
                 <th>Total</th>
@@ -42,6 +43,15 @@
         function getTableColumns() {
             return [
                 { data: 'id' },
+                {
+                    data: 'concept',
+                    width: '200px',
+                    className: 'itinerario-column',
+                    render: function(data, type, row) {
+                        var text = data || '-';
+                        return '<span class="itinerario-text" title="' + text + '">' + text + '</span>';
+                    }
+                },
                 {
                     data: 'status.name',
                     render: function(data, type, row) {
@@ -117,10 +127,11 @@
                 },
                 pageLength: 10,
                 responsive: true,
+                autoWidth: false,
                 order: [[0, 'desc']]
             });
         });
-        
+
         function initializeEmptyTable() {
             $('#deliveryOrdersTable').DataTable({
                 data: [],
@@ -132,6 +143,7 @@
                 },
                 pageLength: 10,
                 responsive: true,
+                autoWidth: false,
                 order: [[0, 'desc']]
             });
         }
