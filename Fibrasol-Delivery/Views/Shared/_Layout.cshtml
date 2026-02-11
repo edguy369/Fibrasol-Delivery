@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/lib/bootstrap-icons/css/bootstrap-icons.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="icon" type="image/x-icon" href="~/icon.ico" />
 </head>
 <body>
     <style>
@@ -81,6 +82,51 @@
         .user-avatar:hover {
             background: rgba(255, 255, 255, 0.3);
         }
+
+        /* Offcanvas mobile sidebar */
+        .offcanvas-custom {
+            background: linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%);
+            max-width: 280px;
+        }
+
+        .offcanvas-custom .offcanvas-header {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+        }
+
+        .offcanvas-custom .btn-close {
+            filter: invert(1) grayscale(100%) brightness(200%);
+        }
+
+        /* Desktop (lg+): render offcanvas content inline like a normal navbar */
+        @@media (min-width: 992px) {
+            .offcanvas-custom {
+                position: static !important;
+                transform: none !important;
+                visibility: visible !important;
+                background: none !important;
+                max-width: none;
+                width: auto !important;
+                flex-grow: 1;
+                display: flex !important;
+                border: none !important;
+                box-shadow: none !important;
+            }
+
+            .offcanvas-custom .offcanvas-header {
+                display: none;
+            }
+
+            .offcanvas-custom .offcanvas-body {
+                display: flex;
+                flex-grow: 1;
+                padding: 0;
+                overflow-y: visible;
+            }
+
+            .offcanvas-backdrop {
+                display: none !important;
+            }
+        }
     </style>
     
     <header>
@@ -90,58 +136,66 @@
                     <i class="bi bi-truck me-2"></i>Fibrasol
                 </a>
                 
-                <button class="navbar-toggler navbar-toggler-custom" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <button class="navbar-toggler navbar-toggler-custom" type="button" data-bs-toggle="offcanvas" data-bs-target="#navbarOffcanvas" aria-controls="navbarOffcanvas" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon navbar-toggler-icon-custom"></span>
                 </button>
-                
-                <div class="collapse navbar-collapse" id="navbarNav">
-                    <ul class="navbar-nav me-auto">
-                        <li class="nav-item">
-                            <a class="nav-link nav-link-custom" asp-controller="Client" asp-action="Index">
-                                <i class="bi bi-people me-1"></i>Clientes
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link nav-link-custom" asp-controller="SalesPerson" asp-action="Index">
-                                <i class="bi bi-person-badge-fill me-1"></i>Vendedores
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link nav-link-custom" asp-controller="SalesPerson" asp-action="Report">
-                                <i class="bi bi-bar-chart me-1"></i>Reporte de ventas
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link nav-link-custom" href="/conductores">
-                                <i class="bi bi-person-badge me-1"></i>Conductores
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link nav-link-custom" asp-area="" asp-controller="DeliveryOrder" asp-action="Index">
-                                <i class="bi bi-receipt me-1"></i>Constancias
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link nav-link-custom" href="/estados-entrega">
-                                <i class="bi bi-clipboard-check me-1"></i>Estados de Entrega
-                            </a>
-                        </li>
-                    </ul>
-                    
-                    <div class="user-menu">
-                        <div class="dropdown">
-                            <div class="user-avatar" data-bs-toggle="dropdown" aria-expanded="false">
-                                <i class="bi bi-person"></i>
+
+                <div class="offcanvas offcanvas-start offcanvas-custom" tabindex="-1" id="navbarOffcanvas" aria-labelledby="navbarOffcanvasLabel">
+                    <div class="offcanvas-header">
+                        <h5 class="offcanvas-title navbar-brand-custom" id="navbarOffcanvasLabel">
+                            <i class="bi bi-truck me-2"></i>Fibrasol
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" data-bs-target="#navbarOffcanvas" aria-label="Close"></button>
+                    </div>
+                    <div class="offcanvas-body">
+                        <ul class="navbar-nav me-auto">
+                            <li class="nav-item">
+                                <a class="nav-link nav-link-custom" asp-controller="Client" asp-action="Index">
+                                    <i class="bi bi-people me-1"></i>Clientes
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link nav-link-custom" asp-controller="SalesPerson" asp-action="Index">
+                                    <i class="bi bi-person-badge-fill me-1"></i>Vendedores
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link nav-link-custom" asp-controller="SalesPerson" asp-action="Report">
+                                    <i class="bi bi-bar-chart me-1"></i>Reporte de ventas
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link nav-link-custom" href="/conductores">
+                                    <i class="bi bi-person-badge me-1"></i>Conductores
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link nav-link-custom" asp-area="" asp-controller="DeliveryOrder" asp-action="Index">
+                                    <i class="bi bi-receipt me-1"></i>Constancias
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link nav-link-custom" href="/estados-entrega">
+                                    <i class="bi bi-clipboard-check me-1"></i>Estados de Entrega
+                                </a>
+                            </li>
+                        </ul>
+
+                        <div class="user-menu">
+                            <div class="dropdown">
+                                <div class="user-avatar" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="bi bi-person"></i>
+                                </div>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li>
+                                        <form asp-area="" asp-controller="Auth" asp-action="Logout" method="post" style="display: inline;">
+                                            <button type="submit" class="dropdown-item" style="border: none; background: none; width: 100%; text-align: left;">
+                                                <i class="bi bi-box-arrow-right me-2"></i>Cerrar Sesión
+                                            </button>
+                                        </form>
+                                    </li>
+                                </ul>
                             </div>
-                            <ul class="dropdown-menu dropdown-menu-end">
-                                <li>
-                                    <form asp-area="" asp-controller="Auth" asp-action="Logout" method="post" style="display: inline;">
-                                        <button type="submit" class="dropdown-item" style="border: none; background: none; width: 100%; text-align: left;">
-                                            <i class="bi bi-box-arrow-right me-2"></i>Cerrar Sesión
-                                        </button>
-                                    </form>
-                                </li>
-                            </ul>
                         </div>
                     </div>
                 </div>
