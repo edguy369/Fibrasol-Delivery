@@ -83,46 +83,50 @@
         }
     </style>
     
+    @{
+        var ctrl = ViewContext.RouteData.Values["controller"]?.ToString();
+        var action = ViewContext.RouteData.Values["action"]?.ToString();
+    }
     <header>
         <nav class="navbar navbar-expand-lg custom-navbar">
             <div class="container-fluid">
                 <a class="navbar-brand-custom" asp-area="" asp-controller="Home" asp-action="Index">
                     <i class="bi bi-truck me-2"></i>Fibrasol
                 </a>
-                
+
                 <button class="navbar-toggler navbar-toggler-custom" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon navbar-toggler-icon-custom"></span>
                 </button>
-                
+
                 <div class="collapse navbar-collapse" id="navbarNav">
                     <ul class="navbar-nav me-auto">
                         <li class="nav-item">
-                            <a class="nav-link nav-link-custom" asp-controller="Client" asp-action="Index">
+                            <a class="nav-link nav-link-custom @(ctrl == "Client" ? "active" : "")" asp-controller="Client" asp-action="Index">
                                 <i class="bi bi-people me-1"></i>Clientes
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link nav-link-custom" asp-controller="SalesPerson" asp-action="Index">
+                            <a class="nav-link nav-link-custom @(ctrl == "SalesPerson" && action == "Index" ? "active" : "")" asp-controller="SalesPerson" asp-action="Index">
                                 <i class="bi bi-person-badge-fill me-1"></i>Vendedores
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link nav-link-custom" asp-controller="SalesPerson" asp-action="Report">
+                            <a class="nav-link nav-link-custom @(ctrl == "SalesPerson" && action == "Report" ? "active" : "")" asp-controller="SalesPerson" asp-action="Report">
                                 <i class="bi bi-bar-chart me-1"></i>Reporte de ventas
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link nav-link-custom" href="/conductores">
+                            <a class="nav-link nav-link-custom @(ctrl == "Rider" ? "active" : "")" href="/conductores">
                                 <i class="bi bi-person-badge me-1"></i>Conductores
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link nav-link-custom" asp-area="" asp-controller="DeliveryOrder" asp-action="Index">
+                            <a class="nav-link nav-link-custom @(ctrl == "DeliveryOrder" ? "active" : "")" asp-area="" asp-controller="DeliveryOrder" asp-action="Index">
                                 <i class="bi bi-receipt me-1"></i>Constancias
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link nav-link-custom" href="/estados-entrega">
+                            <a class="nav-link nav-link-custom @(ctrl == "DeliveryOrderStatus" ? "active" : "")" href="/estados-entrega">
                                 <i class="bi bi-clipboard-check me-1"></i>Estados de Entrega
                             </a>
                         </li>

@@ -342,3 +342,11 @@ function LockForm() {
 function UnlockForm() {
     FibrasolUtils.forms.unlockForm();
 }
+
+// Al presionar Enter dentro de un modal, disparar el botón guardar
+$(document).on('keydown', '.modal input, .modal select, .modal textarea', function(e) {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        $(this).closest('.modal').find('.btn-primary-custom').click();
+    }
+});

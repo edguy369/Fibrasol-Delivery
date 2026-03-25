@@ -1,14 +1,15 @@
+const eyePath = 'M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8zM1.173 8a13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 0 0 1 1.172 8z M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0z';
+const eyeSlashPath = 'M13.359 11.238C15.06 9.72 16 8 16 8s-3-5.5-8-5.5a7.028 7.028 0 0 0-2.79.588l.77.771A5.944 5.944 0 0 1 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.134 13.134 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755-.165.165-.337.328-.517.486l.708.709zm-3.761-1.21a3.5 3.5 0 0 1-4.634-4.635l.72.72a2.5 2.5 0 0 0 3.194 3.194l.72.72zm-2.633-3.249 2.626 2.627a2.5 2.5 0 0 0-2.626-2.627zm-3.025 1.39 .72.72A5.944 5.944 0 0 0 3.5 8c0 .732.13 1.434.368 2.084l.747.747A4.5 4.5 0 0 1 2.5 8c0-.862.23-1.67.632-2.37zM1 1l14 14-.708.708L0 1.708 1 1z';
+
 document.getElementById('togglePassword').addEventListener('click', function () {
     const password = document.getElementById('_password');
     const toggleIcon = document.getElementById('toggleIcon');
 
     if (password.type === 'password') {
         password.type = 'text';
-        toggleIcon.classList.remove('bi-eye');
-        toggleIcon.classList.add('bi-eye-slash');
+        toggleIcon.innerHTML = `<path d="${eyeSlashPath}"/>`;
     } else {
         password.type = 'password';
-        toggleIcon.classList.remove('bi-eye-slash');
-        toggleIcon.classList.add('bi-eye');
+        toggleIcon.innerHTML = `<path d="${eyePath}"/>`;
     }
 });
