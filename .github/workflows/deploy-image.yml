@@ -63,6 +63,7 @@ jobs:
           envkey_S3_BUCKET_NAME : ${{secrets.S3_BUCKET_NAME}}
           envkey_S3_CDN : ${{secrets.S3_CDN}}
           envkey_S3_ACESS_KEY : ${{secrets.S3_ACESS_KEY}}
+          envkey_ORION_API_KEY : ${{secrets.ORION_API_KEY}}
 
           
       - name: Login To Docker Hub

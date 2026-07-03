@@ -18,6 +18,7 @@ services:
             - S3Config:Region=${S3_REGION}
             - S3Config:BucketName=${S3_BUCKET_NAME}
             - S3Config:UseCdn=${S3_CDN}
+            - Orion__ApiKey=${ORION_API_KEY}
         deploy:
             replicas: 1
             resources:
