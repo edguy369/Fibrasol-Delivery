@@ -2,8 +2,17 @@ using Fibrasol_Delivery.AuthProvider.Includes;
 using Fibrasol_Delivery.Config;
 using Microsoft.AspNetCore.Identity;
 using Tipi.Tools.Services.Config;
+using Tipicode.Orion.Logger;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Logging.AddOrionLogging(options =>
+{
+    builder.Configuration.GetSection("Orion").Bind(options);
+    options.MinimumLevel = builder.Environment.IsProduction()
+        ? Microsoft.Extensions.Logging.LogLevel.Warning
+        : Microsoft.Extensions.Logging.LogLevel.Debug;
+});
 var isDev = builder.Environment.IsDevelopment();
 
 // Add services to the container.
