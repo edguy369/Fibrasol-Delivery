@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__orion__orion_whoami",
+      "mcp__orion__orion_list_tasks",
+      "mcp__orion__orion_get_task",
+      "mcp__orion__orion_submit_plan",
+      "mcp__orion__orion_get_plan",
+      "Bash(dotnet build *)",
+      "Bash(pkill -9 -f \"Fibrasol-Delivery.dll\")",
+      "Bash(git -C /home/brandon/brandon/Fibrasol-Delivery diff -- Fibrasol-Delivery/Program.cs docker-compose.yml)",
+      "mcp__orion__orion_comment_task",
+      "mcp__orion__orion_set_status"
+    ]
+  }
+}
