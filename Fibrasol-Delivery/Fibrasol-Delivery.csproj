@@ -19,6 +19,7 @@
     <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.21.0" />
     <PackageReference Include="MySql.Data" Version="9.4.0" />
     <PackageReference Include="Tipi.Tools.Services.DoSpaces" Version="8.0.1" />
+    <PackageReference Include="Tipicode.Orion.Logger" Version="1.0.0" />
   </ItemGroup>
 
 </Project>

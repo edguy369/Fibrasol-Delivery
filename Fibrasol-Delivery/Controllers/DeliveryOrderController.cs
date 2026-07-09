@@ -142,7 +142,7 @@ public class DeliveryOrderController : Controller
             {
                 foreach (var backOrder in request.BackOrders)
                 {
-                    int backOrderId = 0;
+                    int backOrderId = backOrder.Id; // Default to existing ID for "existing" status
                     if (backOrder.ObjectStatus == "new")
                         backOrderId = await _unitOfWork.BackOrders.CreateAsync(backOrder);
                     else if (backOrder.ObjectStatus == "update")
@@ -153,53 +153,91 @@ public class DeliveryOrderController : Controller
                     else if (backOrder.ObjectStatus == "delete")
                         _ = await _unitOfWork.BackOrders.DeleteAsync(backOrder.Id);
 
-                    if (backOrder.Invoices != null)
+                if (backOrder.Invoices != null)
+                {
+                    foreach (var invoice in backOrder.Invoices)
                     {
-                        foreach (var invoice in backOrder.Invoices)
+                        if (invoice.ObjectStatus == "new")
                         {
-                            if (invoice.ObjectStatus == "new")
+                            // Validate SalesPersonId for new invoices
+                            if (invoice.SalesPersonId <= 0)
+                                return BadRequest($"SalesPersonId is required for invoice in backorder {backOrder.Id}");
+
+                            if (!string.IsNullOrEmpty(invoice.Attatchment))
                             {
-                                if (invoice.SalesPersonId <= 0)
-                                    return BadRequest($"SalesPersonId is required for invoice in backorder {backOrder.Id}");
-
-                                if (!string.IsNullOrEmpty(invoice.Attatchment))
+                                _logger.LogInformation("Uploading attachment for new invoice. Data length: {Length}", invoice.Attatchment.Length);
+                                var uploadResult = await _doSpaces.UploadFileAsync(invoice.Attatchment, "facturas");
+                                if (uploadResult.Success)
                                 {
-                                    var uploadResult = await _doSpaces.UploadFileAsync(invoice.Attatchment, "facturas");
-                                    if (uploadResult.Success)
-                                        invoice.Attatchment = uploadResult.Path;
+                                    _logger.LogInformation("Attachment uploaded successfully. Path: {Path}", uploadResult.Path);
+                                    invoice.Attatchment = uploadResult.Path;
                                 }
-
-                                if (!string.IsNullOrEmpty(invoice.SignedAttatchment))
+                                else
                                 {
-                                    var uploadResult = await _doSpaces.UploadFileAsync(invoice.SignedAttatchment, "facturas-firmadas");
-                                    if (uploadResult.Success)
-                                        invoice.SignedAttatchment = uploadResult.Path;
+                                    _logger.LogError("Failed to upload attachment: {Error}", uploadResult.Error);
+                                    invoice.Attatchment = null; // Clear to avoid saving base64 to DB
                                 }
-                                invoice.BackorderId = backOrderId;
-                                _ = await _unitOfWork.Invoices.CreateAsync(invoice);
                             }
 
-                            if (invoice.ObjectStatus == "update")
+                            if (!string.IsNullOrEmpty(invoice.SignedAttatchment))
                             {
-                                if (invoice.SalesPersonId <= 0)
-                                    return BadRequest($"SalesPersonId is required for invoice {invoice.Id}");
-
-                                if (invoice.AttatchmentChanged && !string.IsNullOrEmpty(invoice.Attatchment))
+                                _logger.LogInformation("Uploading signed attachment for new invoice. Data length: {Length}", invoice.SignedAttatchment.Length);
+                                var uploadImageResult = await _doSpaces.UploadFileAsync(invoice.SignedAttatchment, "facturas-firmadas");
+                                if (uploadImageResult.Success)
                                 {
-                                    var uploadResult = await _doSpaces.UploadFileAsync(invoice.Attatchment, "facturas");
-                                    if (uploadResult.Success)
-                                        invoice.Attatchment = uploadResult.Path;
+                                    _logger.LogInformation("Signed attachment uploaded successfully. Path: {Path}", uploadImageResult.Path);
+                                    invoice.SignedAttatchment = uploadImageResult.Path;
                                 }
-
-                                if (invoice.signedAttatchmentChanged && !string.IsNullOrEmpty(invoice.SignedAttatchment))
+                                else
                                 {
-                                    var uploadResult = await _doSpaces.UploadFileAsync(invoice.SignedAttatchment, "facturas-firmadas");
-                                    if (uploadResult.Success)
-                                        invoice.SignedAttatchment = uploadResult.Path;
+                                    _logger.LogError("Failed to upload signed attachment: {Error}", uploadImageResult.Error);
+                                    invoice.SignedAttatchment = null; // Clear to avoid saving base64 to DB
                                 }
-
-                                _ = await _unitOfWork.Invoices.UpdateAsync(invoice.Id, invoice);
                             }
+                            invoice.BackorderId = backOrderId;
+                            _ = await _unitOfWork.Invoices.CreateAsync(invoice);
+                        }
+
+                        if (invoice.ObjectStatus == "update")
+                        {
+                            // Validate SalesPersonId for updated invoices
+                            if (invoice.SalesPersonId <= 0)
+                                return BadRequest($"SalesPersonId is required for invoice {invoice.Id}");
+
+                            if (invoice.AttatchmentChanged && !string.IsNullOrEmpty(invoice.Attatchment))
+                            {
+                                _logger.LogInformation("Uploading attachment for updated invoice {Id}. Data length: {Length}", invoice.Id, invoice.Attatchment.Length);
+                                var uploadResult = await _doSpaces.UploadFileAsync(invoice.Attatchment, "facturas");
+                                if (uploadResult.Success)
+                                {
+                                    _logger.LogInformation("Attachment uploaded successfully. Path: {Path}", uploadResult.Path);
+                                    invoice.Attatchment = uploadResult.Path;
+                                }
+                                else
+                                {
+                                    _logger.LogError("Failed to upload attachment for invoice {Id}: {Error}", invoice.Id, uploadResult.Error);
+                                    invoice.Attatchment = null; // Clear to avoid saving base64 to DB
+                                }
+                            }
+
+                            if (invoice.signedAttatchmentChanged && !string.IsNullOrEmpty(invoice.SignedAttatchment))
+                            {
+                                _logger.LogInformation("Uploading signed attachment for updated invoice {Id}. Data length: {Length}", invoice.Id, invoice.SignedAttatchment.Length);
+                                var uploadResult = await _doSpaces.UploadFileAsync(invoice.SignedAttatchment, "facturas-firmadas");
+                                if (uploadResult.Success)
+                                {
+                                    _logger.LogInformation("Signed attachment uploaded successfully. Path: {Path}", uploadResult.Path);
+                                    invoice.SignedAttatchment = uploadResult.Path;
+                                }
+                                else
+                                {
+                                    _logger.LogError("Failed to upload signed attachment for invoice {Id}: {Error}", invoice.Id, uploadResult.Error);
+                                    invoice.SignedAttatchment = null; // Clear to avoid saving base64 to DB
+                                }
+                            }
+
+                            _ = await _unitOfWork.Invoices.UpdateAsync(invoice.Id, invoice);
+                        }
 
                             if (invoice.ObjectStatus == "delete")
                             {
@@ -219,8 +257,8 @@ public class DeliveryOrderController : Controller
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating delivery order ID: {Id}", id);
-            return StatusCode(500, "An error occurred while processing your request.");
+            // Log the exception here if you have logging configured
+            return StatusCode(500, $"Internal server error: {ex.Message}");
         }
     }
 

@@ -28,7 +28,7 @@ function getTableColumns() {
                            <i class="bi bi-printer"></i>
                        </a>
                        <a href="/constancias/${row.id}" class="btn btn-view btn-sm me-1">
-                           <i class="bi bi-eye"></i>
+                           <i class="bi bi-pencil"></i>
                        </a>
                        <button type="button" class="btn btn-delete btn-sm" onclick="deleteDeliveryOrder(${row.id})">
                            <i class="bi bi-trash"></i>

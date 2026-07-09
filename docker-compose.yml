@@ -20,6 +20,7 @@ services:
             - S3Config:UseCdn=${S3_CDN}
             - DataProtection:CertBase64=${DATA_PROTECTION_CERT_BASE64}
             - DataProtection:CertPassword=${DATA_PROTECTION_CERT_PASSWORD}
+            - Orion__ApiKey=${ORION_API_KEY}
         volumes:
             - fibrasol_keys:/keys
         deploy:

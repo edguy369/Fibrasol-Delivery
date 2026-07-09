@@ -9,56 +9,74 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"]</title>
-    <link rel="stylesheet" href="~/css/deliveryorder/print.css" />
+    <link rel="stylesheet" href="~/css/deliveryorder/print.css?v=2" />
 </head>
 <body>
-    <div class="header-info">
-        <div class="header">
-            <h1>ITINERARIO DESPACHO</h1>
-        </div>
-        <div>
-            <span>NO. ITINERARIO:</span>
-            <span class="info-box" id="orderNumber">1</span>
-            <span style="margin-left: 20px;">FECHA:</span>
-            <span class="info-box" id="orderDate">7-Jan</span>
-        </div>
-    </div>
-
-    <table class="delivery-table">
-        <thead>
-            <tr>
-                <th>CLIENTES</th>
-                <th>DIRECCION</th>
-                <th>REF.<br>INTERNA</th>
-                <th>VALOR</th>
-                <th>VENDEDOR</th>
-                <th>NO.<br>COMANDA</th>
-                <th>PESO TOTAL<br>TONELADA</th>
-            </tr>
-        </thead>
-        <tbody id="deliveryTableBody">
-            <!-- Data will be populated here -->
-        </tbody>
-        <tfoot>
-            <tr class="total-row">
-                <td colspan="3"></td>
-                <td id="totalAmount">Q45,776.60</td>
-                <td colspan="3"></td>
-            </tr>
-        </tfoot>
-    </table>
-
-    <div class="signatures">
-        <div class="signature-box">
-            <div style="text-align: left;" id="pilotsNames">
-                <strong>SIN ASIGNAR</strong>
+    <div class="page-container">
+        <div class="header-info">
+            <div class="header">
+                <h1>ITINERARIO DESPACHO</h1>
             </div>
-            <div class="signature-line"></div>
-            <div><strong>FIRMA Y NOMBRE DEL PILOTO</strong></div>
+            <div>
+                <span>NO. ITINERARIO:</span>
+                <span class="info-box" id="orderNumber"></span>
+                <span style="margin-left: 20px;">FECHA:</span>
+                <span class="info-box" id="orderDate"></span>
+            </div>
         </div>
-        <div class="signature-box">
-            <div class="signature-line"></div>
-            <div><strong>FIRMA DE QUIEN ENTREGA ITINERARIO</strong></div>
+
+        <table class="delivery-table">
+            <thead>
+                <tr>
+                    <th colspan="7" class="table-title">DETALLE DE CONSTANCIAS DE ENTREGA</th>
+                </tr>
+                <tr>
+                    <th>CLIENTES</th>
+                    <th>DIRECCION</th>
+                    <th>
+                        REF.<br>
+                        INTERNA
+                    </th>
+                    <th>VALOR</th>
+                    <th>VENDEDOR</th>
+                    <th>
+                        NO.<br>
+                        COMANDA
+                    </th>
+                    <th>
+                        PESO TOTAL<br>
+                        TONELADA
+                    </th>
+                </tr>
+            </thead>
+            <tbody id="deliveryTableBody">
+            </tbody>
+            <tfoot>
+                <tr class="total-row">
+                    <td colspan="3"></td>
+                    <td id="totalAmount"></td>
+                    <td colspan="3"></td>
+                </tr>
+            </tfoot>
+        </table>
+
+        <div class="concept-section">
+            <div class="concept-label"><strong>CONCEPTO DEL ITINERARIO</strong></div>
+            <div class="concept-box" id="orderConcept"></div>
+        </div>
+
+        <div class="signatures">
+            <div class="signature-box">
+                <div style="text-align: left;" id="pilotsNames">
+                    <strong>SIN ASIGNAR</strong>
+                </div>
+                <div class="signature-line"></div>
+                <div><strong>FIRMA Y NOMBRE DEL PILOTO</strong></div>
+            </div>
+            <div class="signature-box">
+                <div class="signature-line"></div>
+                <div><strong>FIRMA DE QUIEN ENTREGA ITINERARIO</strong></div>
+            </div>
         </div>
     </div>
 
@@ -67,7 +85,7 @@
         <button onclick="window.close()" style="padding: 10px 20px; font-size: 14px; margin-left: 10px;">Cerrar</button>
     </div>
 
-    <script src="~/js/site.min.js"></script>
-    <script src="~/js/deliveryorder/print.min.js"></script>
+    <script src="~/js/site.min.js?v=3"></script>
+    <script src="~/js/deliveryorder/print.min.js?v=4"></script>
 </body>
 </html>

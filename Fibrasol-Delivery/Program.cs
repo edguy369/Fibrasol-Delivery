@@ -5,12 +5,25 @@ using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using System.Security.Cryptography.X509Certificates;
 using Tipi.Tools.Services.Config;
+using Tipicode.Orion.Logger;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Logging.AddOrionLogging(options =>
+{
+    builder.Configuration.GetSection("Orion").Bind(options);
+    options.MinimumLevel = builder.Environment.IsProduction()
+        ? Microsoft.Extensions.Logging.LogLevel.Warning
+        : Microsoft.Extensions.Logging.LogLevel.Debug;
+});
 var isDev = builder.Environment.IsDevelopment();
 
 // Add services to the container.
-builder.Services.AddControllersWithViews();
+builder.Services.AddControllersWithViews()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
+    });
 
 var razorBuilder = builder.Services.AddRazorPages();
 if (isDev) //Enable Razor pages compilation if the Web App is in development
@@ -65,7 +78,11 @@ builder.Services.AddHttpsRedirection(options => options.HttpsPort = 443);
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-if (!app.Environment.IsDevelopment())
+if (app.Environment.IsDevelopment())
+{
+    app.UseDeveloperExceptionPage();
+}
+else
 {
     app.UseExceptionHandler("/Home/Error");
     // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.

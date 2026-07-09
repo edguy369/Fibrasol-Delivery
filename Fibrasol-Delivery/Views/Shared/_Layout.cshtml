@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/lib/bootstrap-icons/css/bootstrap-icons.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/Fibrasol_Delivery.styles.css" asp-append-version="true" />
+    <link rel="icon" type="image/x-icon" href="~/icon.ico" />
 </head>
 <body>
     <style>
@@ -82,8 +82,57 @@
         .user-avatar:hover {
             background: rgba(255, 255, 255, 0.3);
         }
+
+        /* Offcanvas mobile sidebar */
+        .offcanvas-custom {
+            background: linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%);
+            max-width: 280px;
+        }
+
+        .offcanvas-custom .offcanvas-header {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+        }
+
+        .offcanvas-custom .btn-close {
+            filter: invert(1) grayscale(100%) brightness(200%);
+        }
+
+        /* Desktop (lg+): render offcanvas content inline like a normal navbar */
+        @@media (min-width: 992px) {
+            .offcanvas-custom {
+                position: static !important;
+                transform: none !important;
+                visibility: visible !important;
+                background: none !important;
+                max-width: none;
+                width: auto !important;
+                flex-grow: 1;
+                display: flex !important;
+                border: none !important;
+                box-shadow: none !important;
+            }
+
+            .offcanvas-custom .offcanvas-header {
+                display: none;
+            }
+
+            .offcanvas-custom .offcanvas-body {
+                display: flex;
+                flex-grow: 1;
+                padding: 0;
+                overflow-y: visible;
+            }
+
+            .offcanvas-backdrop {
+                display: none !important;
+            }
+        }
     </style>
     
+    @{
+        var ctrl = ViewContext.RouteData.Values["controller"]?.ToString();
+        var action = ViewContext.RouteData.Values["action"]?.ToString();
+    }
     <header>
         <nav class="navbar navbar-expand-lg custom-navbar">
             <div class="container-fluid">
@@ -91,7 +140,7 @@
                     <i class="bi bi-truck me-2"></i>Fibrasol
                 </a>
                 
-                <button class="navbar-toggler navbar-toggler-custom" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <button class="navbar-toggler navbar-toggler-custom" type="button" data-bs-toggle="offcanvas" data-bs-target="#navbarOffcanvas" aria-controls="navbarOffcanvas" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon navbar-toggler-icon-custom"></span>
                 </button>
                 
@@ -135,9 +184,6 @@
                                 <i class="bi bi-person"></i>
                             </div>
                             <ul class="dropdown-menu dropdown-menu-end">
-                                <li><a class="dropdown-item" href="#"><i class="bi bi-person me-2"></i>Perfil</a></li>
-                                <li><a class="dropdown-item" href="#"><i class="bi bi-gear me-2"></i>Configuración</a></li>
-                                <li><hr class="dropdown-divider"></li>
                                 <li>
                                     <form asp-area="" asp-controller="Auth" asp-action="Logout" method="post" style="display: inline;">
                                         <button type="submit" class="dropdown-item" style="border: none; background: none; width: 100%; text-align: left;">

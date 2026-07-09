@@ -29,7 +29,12 @@ function populateOrderData(orderData) {
 
     populateTable(orderData);
 
-    document.getElementById('totalAmount').textContent = FibrasolUtils.currency.format(orderData.total);
+    document.getElementById('totalAmount').textContent = FibrasolUtils.currency.formatWithSymbol(orderData.total, orderData.currency || 'Q');
+
+    // Populate concept if exists
+    if (orderData.concept) {
+        document.getElementById('orderConcept').textContent = orderData.concept;
+    }
 
     populatePilots(orderData);
 }
@@ -62,7 +67,9 @@ function populateTable(orderData) {
     tbody.innerHTML = '';
 
     if (!orderData.backorders || orderData.backorders.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7">No hay comandas para mostrar</td></tr>';
+        const row = document.createElement('tr');
+        row.innerHTML = '<td colspan="7" style="text-align: center;">No hay comandas para mostrar</td>';
+        tbody.appendChild(row);
         return;
     }
 
@@ -73,35 +80,44 @@ function populateTable(orderData) {
                 <td class="client-cell">${backorder.client ? backorder.client.name : 'N/A'}</td>
                 <td class="address-cell">N/A</td>
                 <td>N/A</td>
-                <td>Q0.00</td>
+                <td>${(orderData.currency || 'Q')} 0.00</td>
                 <td></td>
                 <td>${backorder.number || 'N/A'}</td>
                 <td>${backorder.weight ? backorder.weight.toFixed(1) : '0.0'}</td>
             `;
             tbody.appendChild(row);
         } else {
+            const backorderNumber = backorder.number || 'N/A';
+            const backorderWeight = backorder.weight ? backorder.weight.toFixed(1) : '0.0';
+            const invoiceCount = backorder.invoices.length;
+
             backorder.invoices.forEach((invoice, index) => {
                 const row = document.createElement('tr');
+                let cells = '';
+
+                // Use invoice client if available, otherwise fall back to backorder client
+                const invoiceClientName = invoice.client ? invoice.client.name : (backorder.client ? backorder.client.name : 'N/A');
 
                 if (index === 0) {
-                    row.innerHTML = `
-                        <td class="client-cell" rowspan="${backorder.invoices.length}">${backorder.client ? backorder.client.name : 'N/A'}</td>
+                    cells = `
+                        <td class="client-cell">${invoiceClientName}</td>
                         <td class="address-cell">${invoice.address || 'N/A'}</td>
                         <td>${invoice.reference || 'N/A'}</td>
-                        <td>${FibrasolUtils.currency.format(invoice.value || 0)}</td>
-                        <td></td>
-                        <td class="client-cell" rowspan="${backorder.invoices.length}">${backorder.number || 'N/A'}</td>
-                        <td class="client-cell" rowspan="${backorder.invoices.length}">${backorder.weight ? backorder.weight.toFixed(1) : '0.0'}</td>
+                        <td>${FibrasolUtils.currency.formatWithSymbol(invoice.value || 0, orderData.currency || 'Q')}</td>
+                        <td>${invoice.salesPerson ? invoice.salesPerson.name : 'N/A'}</td>
+                        <td class="client-cell" rowspan="${invoiceCount}">${backorderNumber}</td>
+                        <td class="client-cell" rowspan="${invoiceCount}">${backorderWeight}</td>
                     `;
                 } else {
-                    row.innerHTML = `
+                    cells = `
+                        <td class="client-cell">${invoiceClientName}</td>
                         <td class="address-cell">${invoice.address || 'N/A'}</td>
                         <td>${invoice.reference || 'N/A'}</td>
-                        <td>${FibrasolUtils.currency.format(invoice.value || 0)}</td>
-                        <td></td>
+                        <td>${FibrasolUtils.currency.formatWithSymbol(invoice.value || 0, orderData.currency || 'Q')}</td>
+                        <td>${invoice.salesPerson ? invoice.salesPerson.name : 'N/A'}</td>
                     `;
                 }
-
+                row.innerHTML = cells;
                 tbody.appendChild(row);
             });
         }

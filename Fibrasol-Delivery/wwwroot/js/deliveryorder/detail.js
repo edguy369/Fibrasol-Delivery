@@ -137,13 +137,13 @@ function loadOrderData(id) {
                     console.log('Setting status to:', orderData.status.name);
                     statusSelect.value = orderData.status.id;
 
-                    // Verify the status was set
-                        if (statusSelect.value !== orderData.status.id) {
-                        console.warn('Status not set correctly. Available options:');
-                        for (let option of statusSelect.options) {
-                            console.log(`Option value: ${option.value}, text: ${option.text}`);
-                        }
+                    // Verify the status was set (convert to string for comparison)
+                if (statusSelect.value !== String(orderData.status.id)) {
+                    console.warn('Status not set correctly. Available options:');
+                    for (let option of statusSelect.options) {
+                        console.log(`Option value: ${option.value}, text: ${option.text}`);
                     }
+                }
                 }
 
                 // Set the global orderId for save operations
@@ -341,7 +341,11 @@ function addFactura(comandaIndex, data = null) {
              data-factura-id="${data ? data.id || 0 : 0}"
              data-factura-status="${data ? 'existing' : 'new'}"
              data-original-attachment="${data ? (data.attatchment || '') : ''}"
-             data-original-signed-attachment="${data ? (data.signedAttatchment || '') : ''}">
+             data-original-signed-attachment="${data ? (data.signedAttatchment || '') : ''}"
+             data-original-address="${data ? (data.address || '') : ''}"
+             data-original-reference="${data ? (data.reference || '') : ''}"
+             data-original-value="${data && data.value != null ? data.value : 0}"
+             data-original-salesperson-id="${data && data.salesPerson && data.salesPerson.id != null ? data.salesPerson.id : 0}">
             <div class="factura-header">
                 <div class="d-flex justify-content-between align-items-center">
                     <small class="fw-bold">Factura ${facturaIndex + 1}</small>
@@ -492,13 +496,16 @@ function updateOrderTotal() {
 
 function handleFileChange(fileInput, comandaIndex, facturaIndex, type) {
     const file = fileInput.files[0];
+    console.log('handleFileChange called:', { comandaIndex, facturaIndex, type, file: file ? file.name : 'no file' });
     if (!file) return;
 
     const reader = new FileReader();
     reader.onload = function(e) {
         const base64DataUrl = e.target.result; // Keep the full data URL format: data:image/png;base64,iVBORw0KG...
+        console.log('File read complete. Base64 length:', base64DataUrl.length);
 
         const facturaCard = document.querySelector(`[data-comanda="${comandaIndex}"] [data-factura-index="${facturaIndex}"]`);
+        console.log('Found facturaCard:', facturaCard ? 'yes' : 'NO - selector failed!');
         if (facturaCard) {
             const documentContainer = type === 'attachment' ?
                 facturaCard.querySelector('.col-md-4:nth-child(2) .document-container') :
@@ -507,9 +514,11 @@ function handleFileChange(fileInput, comandaIndex, facturaIndex, type) {
             if (type === 'attachment') {
                 facturaCard.querySelector('.factura-attachment-base64').value = base64DataUrl;
                 facturaCard.querySelector('.factura-attachment-changed').value = 'true';
+                console.log('Attachment saved. Changed flag:', facturaCard.querySelector('.factura-attachment-changed').value);
             } else if (type === 'signed') {
                 facturaCard.querySelector('.factura-signed-attachment-base64').value = base64DataUrl;
                 facturaCard.querySelector('.factura-signed-attachment-changed').value = 'true';
+                console.log('Signed attachment saved. Changed flag:', facturaCard.querySelector('.factura-signed-attachment-changed').value);
             }
 
             // Replace file input with document link
@@ -583,8 +592,21 @@ function checkFacturaChanges(comandaIndex, facturaIndex) {
     const attachmentChanged = facturaCard.querySelector('.factura-attachment-changed').value === 'true';
     const signedAttachmentChanged = facturaCard.querySelector('.factura-signed-attachment-changed').value === 'true';
 
+    // Get original values from data attributes
+    const originalAddress = facturaCard.getAttribute('data-original-address') || '';
+    const originalReference = facturaCard.getAttribute('data-original-reference') || '';
+    const originalValue = parseFloat(facturaCard.getAttribute('data-original-value')) || 0;
+    const originalSalesPersonId = parseInt(facturaCard.getAttribute('data-original-salesperson-id')) || 0;
+
     // For existing items, check if any changes were made
-    const hasChanges = attachmentChanged || signedAttachmentChanged;
+    const hasChanges = (
+        currentAddress !== originalAddress ||
+        currentReference !== originalReference ||
+        Math.abs(currentValue - originalValue) > 0.001 ||
+        currentSalesPersonId !== originalSalesPersonId ||
+        attachmentChanged ||
+        signedAttachmentChanged
+    );
 
     if (hasChanges && currentStatus === 'existing') {
         facturaCard.setAttribute('data-factura-status', 'update');
@@ -595,6 +617,7 @@ function checkFacturaChanges(comandaIndex, facturaIndex) {
 
 function getFacturaData(comandaIndex, facturaIndex) {
     const facturaCard = document.querySelector(`[data-comanda="${comandaIndex}"] [data-factura-index="${facturaIndex}"]`);
+    console.log('getFacturaData:', { comandaIndex, facturaIndex, found: !!facturaCard });
     if (!facturaCard) return null;
 
     const facturaId = parseInt(facturaCard.getAttribute('data-factura-id')) || 0;
@@ -607,6 +630,15 @@ function getFacturaData(comandaIndex, facturaIndex) {
     const attachmentChanged = facturaCard.querySelector('.factura-attachment-changed').value === 'true';
     const signedAttachmentChanged = facturaCard.querySelector('.factura-signed-attachment-changed').value === 'true';
     const objectStatus = facturaCard.getAttribute('data-factura-status');
+
+    console.log('Factura data collected:', {
+        facturaId,
+        objectStatus,
+        attachmentLength: attachment ? attachment.length : 0,
+        signedAttachmentLength: signedAttachment ? signedAttachment.length : 0,
+        attachmentChanged,
+        signedAttachmentChanged
+    });
 
     return {
         id: facturaId,
@@ -934,7 +966,6 @@ function saveDeliveryOrder() {
         },
         error: function(xhr, status, error) {
             console.error('Error saving delivery order:', error);
-            FibrasolUtils.ui.showErrorMessage('Error al guardar la constancia de entrega. Por favor, inténtelo de nuevo.');
         },
         complete: function() {
             FibrasolUtils.ui.setButtonLoading(saveButton, false);

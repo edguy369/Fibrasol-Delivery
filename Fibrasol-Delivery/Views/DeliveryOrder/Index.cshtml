@@ -1,11 +1,11 @@
-﻿@{
+@{
     ViewData["Title"] = "Gestión de Órdenes de Entrega";
 }
 
 <link rel="stylesheet" href="~/css/deliveryorder/index.css" />
 
 <div class="page-header mt-4">
-    <div class="d-flex justify-content-between align-items-center">
+    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-center gap-4">
         <div>
             <h1 class="mb-2"><i class="bi bi-truck me-3"></i>Gestión de Órdenes de Entrega</h1>
             <p class="mb-0 opacity-75">Administra las órdenes de entrega del sistema</p>
@@ -21,6 +21,7 @@
         <thead>
             <tr>
                 <th>ID</th>
+                <th>Itinerario</th>
                 <th>Estado</th>
                 <th>Fecha Creación</th>
                 <th>Total</th>
@@ -42,6 +43,15 @@
         function getTableColumns() {
             return [
                 { data: 'id' },
+                {
+                    data: 'concept',
+                    width: '200px',
+                    className: 'itinerario-column',
+                    render: function(data, type, row) {
+                        var text = data || '-';
+                        return '<span class="itinerario-text" title="' + text + '">' + text + '</span>';
+                    }
+                },
                 {
                     data: 'status.name',
                     render: function(data, type, row) {
@@ -70,7 +80,8 @@
                 {
                     data: 'total',
                     render: function(data, type, row) {
-                        return 'Q' + data.toFixed(2);
+                        const currency = row.currency || 'Q';
+                        return currency + data.toFixed(2);
                     }
                 },
                 {
@@ -81,7 +92,7 @@
                                '<i class="bi bi-printer"></i>' +
                                '</a>' +
                                '<a href="/constancias/' + row.id + '" class="btn btn-view btn-sm me-1">' +
-                               '<i class="bi bi-eye"></i>' +
+                               '<i class="bi bi-pencil"></i>' +
                                '</a>' +
                                '<button type="button" class="btn btn-delete btn-sm" onclick="deleteDeliveryOrder(' + row.id + ')">' +
                                '<i class="bi bi-trash"></i>' +
@@ -116,10 +127,11 @@
                 },
                 pageLength: 10,
                 responsive: true,
+                autoWidth: false,
                 order: [[0, 'desc']]
             });
         });
-        
+
         function initializeEmptyTable() {
             $('#deliveryOrdersTable').DataTable({
                 data: [],
@@ -131,14 +143,61 @@
                 },
                 pageLength: 10,
                 responsive: true,
+                autoWidth: false,
                 order: [[0, 'desc']]
             });
         }
 
-    <link rel="stylesheet" href="~/lib/datatables/css/dataTables.bootstrap5.min.css">
-    <script src="~/lib/datatables/js/jquery.dataTables.min.js"></script>
-    <script src="~/lib/datatables/js/dataTables.bootstrap5.min.js"></script>
- 
+        function deleteDeliveryOrder(id) {
+            if (confirm('¿Está seguro de que desea eliminar esta orden de entrega?')) {
+                // Make AJAX call to delete the order
+                $.ajax({
+                    url: '/delivery-orders/' + id,
+                    type: 'DELETE',
+                    contentType: 'application/json',
+                    success: function(response) {
+                        // Show success message
+                        showSuccessMessage('Constancia de entrega eliminada correctamente');
+                        
+                        // Reload DataTable from server
+                        $('#deliveryOrdersTable').DataTable().ajax.reload();
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Error deleting delivery order:', error);
+                        showErrorMessage('Error al eliminar la constancia de entrega. Por favor, inténtelo de nuevo.');
+                    }
+                });
+            }
+        }
 
-    <script src="~/js/deliveryorder/index.min.js"></script>
+        function showSuccessMessage(message) {
+            // Create and show a temporary success alert
+            var alertHtml = '<div class="alert alert-success alert-dismissible fade show" role="alert">' +
+                           '<i class="bi bi-check-circle me-2"></i>' + message +
+                           '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>' +
+                           '</div>';
+            
+            $('.page-header').after(alertHtml);
+            
+            // Auto-dismiss after 3 seconds
+            setTimeout(function() {
+                $('.alert-success').fadeOut();
+            }, 3000);
+        }
+        
+        function showErrorMessage(message) {
+            // Create and show a temporary error alert
+            var alertHtml = '<div class="alert alert-warning alert-dismissible fade show" role="alert">' +
+                           '<i class="bi bi-exclamation-triangle me-2"></i>' + message +
+                           '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>' +
+                           '</div>';
+            
+            $('.page-header').after(alertHtml);
+            
+            // Auto-dismiss after 5 seconds
+            setTimeout(function() {
+                $('.alert-warning').fadeOut();
+            }, 5000);
+        }
+    </script>
 }

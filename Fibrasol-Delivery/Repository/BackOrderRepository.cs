@@ -23,7 +23,7 @@ public class BackOrderRepository : IBackOrderRepository
             "sp_BackOrder_Create",
             new
             {
-                pClientId = request.ClientId,
+                pClientId = request.ClientId ?? 0,
                 pDeliveryOrderId = request.OrderId,
                 pNumber = request.Number,
                 pWeight = request.Weight
@@ -50,7 +50,7 @@ public class BackOrderRepository : IBackOrderRepository
             new
             {
                 pId = id,
-                pClientId = request.ClientId,
+                pClientId = request.ClientId ?? 0,
                 pNumber = request.Number,
                 pWeight = request.Weight
             },

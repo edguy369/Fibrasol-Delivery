@@ -121,6 +121,7 @@ CREATE TABLE `DeliveryOrder` (
     `StatusId` INT NOT NULL,
     `Created` DATETIME NOT NULL DEFAULT NOW(),
     `Total` DOUBLE NOT NULL,
+    `Currency` VARCHAR(3) DEFAULT 'Q',
     PRIMARY KEY (`Id`),
     CONSTRAINT `FK_DeliveryOrder_DeliveryOrderStatus_StatusId` FOREIGN KEY (`StatusId`) REFERENCES `DeliveryOrderStatus` (`Id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -138,12 +139,12 @@ CREATE TABLE `DeliveryOrderDrivers` (
 /*COMANDAS*/
 CREATE TABLE `BackOrder` (
     `Id` INT NOT NULL AUTO_INCREMENT,
-    `ClientId` INT NOT NULL,
+    `ClientId` INT NULL,
     `DeliveryOrderId` INT NOT NULL,
     `Number` VARCHAR(150) NOT NULL,
     `Weight` DOUBLE NOT NULL,
     PRIMARY KEY (`Id`),
-    CONSTRAINT `FK_BackOrder_Clients_ClientId` FOREIGN KEY (`ClientId`) REFERENCES `Clients` (`Id`) ON DELETE CASCADE,
+    CONSTRAINT `FK_BackOrder_Clients_ClientId` FOREIGN KEY (`ClientId`) REFERENCES `Clients` (`Id`) ON DELETE SET NULL,
     CONSTRAINT `FK_BackOrder_DeliveryOrder_DeliveryOrderId` FOREIGN KEY (`DeliveryOrderId`) REFERENCES `DeliveryOrder` (`Id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
