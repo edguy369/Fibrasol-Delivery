@@ -1,6 +1,9 @@
 using Fibrasol_Delivery.AuthProvider.Includes;
 using Fibrasol_Delivery.Config;
+using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
+using System.Security.Cryptography.X509Certificates;
 using Tipi.Tools.Services.Config;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -39,6 +42,26 @@ builder.Services.ConfigureDoSpaces(config["S3Config:AccessKey"]!,
         config["S3Config:Root"]!, config["S3Config:EndpointUrl"]!,
         config["S3Config:Region"]!, config["S3Config:UseCdn"]!);
 
+var dataProtectionBuilder = builder.Services.AddDataProtection()
+    .SetApplicationName("FibrasolDelivery");
+
+if (!isDev)
+{
+    // /keys is only writable by the root user the production container runs as;
+    // local dev keeps the ephemeral default so `dotnet run` doesn't need elevated permissions.
+    dataProtectionBuilder.PersistKeysToFileSystem(new DirectoryInfo("/keys"));
+
+    var dataProtectionCertBase64 = config["DataProtection:CertBase64"];
+    if (!string.IsNullOrEmpty(dataProtectionCertBase64))
+    {
+        var dataProtectionCert = new X509Certificate2(Convert.FromBase64String(dataProtectionCertBase64),
+            config["DataProtection:CertPassword"]);
+        dataProtectionBuilder.ProtectKeysWithCertificate(dataProtectionCert);
+    }
+}
+
+builder.Services.AddHttpsRedirection(options => options.HttpsPort = 443);
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -48,6 +71,11 @@ if (!app.Environment.IsDevelopment())
     // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
+
+app.UseForwardedHeaders(new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+});
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
